@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "index.ts",
-    "dev": "nodemon index.ts"
+    "dev": "nodemon --exec tsx index.ts",
+    "build": "tsc",
+    "start:prod": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
@@ -18,8 +19,9 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@grammyjs/stateless-question": "^4.0.0",
     "@grammyjs/types": "^3.20.0",
     "dotenv": "^16.5.0",
-    "grammy": "^1.36.3"
+    "grammy": "^1.37.0"
   }
 }
