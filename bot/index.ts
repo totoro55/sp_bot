@@ -1,33 +1,42 @@
 import {Bot, Context} from "grammy";
 import 'dotenv/config';
 import isAuth from "./global/handlers/isAuth";
-import emailQuestion from "./global/middlewares/register";
-import confirmCodeQuestion from "./global/middlewares/confirmCode";
-import confirmCode from "./global/middlewares/confirmCode";
+
+import {startKeyboard} from "./global/keyboards/start";
+import {helpKeyboard} from "./global/keyboards/help";
+import addCallbacks from "./callbacks";
 
 require('dotenv').config();
 
 // Create a bot object
 const bot = new Bot(process.env.BOT_TOKEN!); // <-- place your bot token in this string
 
-bot.use(emailQuestion.middleware())
-bot.use(confirmCodeQuestion.middleware())
+addCallbacks(bot)
 
-// Register listeners to handle messages
-bot.on("message:text", async (ctx: Context) => {
-    const text = ctx.message?.text || ""
 
+bot.command("start", async (ctx: Context) => {
     const user = await isAuth(ctx)
     if (!user) return
 
-
+    await ctx.reply("Добро пожаловать! Выберите интересующий вас пункт меню", {reply_markup: startKeyboard})
 });
 
-bot.callbackQuery("register", async (ctx: Context) => {
-    return emailQuestion.replyWithMarkdown(ctx, "Введите ваш логин. Только логин, без @dns-shop.ru:");
-})
+bot.command("help", async (ctx: Context) => {
+    const user = await isAuth(ctx)
+    if (!user) return
 
-bot.callbackQuery("confirm_code", async (ctx: Context) => {
-    return confirmCode.replyWithMarkdown(ctx, "Введите код подтверждения, отправленный на ваш почтовый ящик:");
-})
+    await ctx.reply("Выберите интересующий вас пункт меню", {reply_markup: helpKeyboard})
+});
+
+// Register listeners to handle messages
+bot.on("message:text", async (ctx: Context) => {
+    const user = await isAuth(ctx)
+    if (!user) return
+
+    const text = ctx.message?.text
+    if (!text) return
+    //await ctx.reply("Привет")
+});
+
+
 export default bot

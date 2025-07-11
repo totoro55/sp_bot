@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "dev": "nodemon --exec tsx index.ts",
+    "dev": "nodemon index.ts",
     "build": "tsc",
     "start:prod": "node dist/index.js"
   },
