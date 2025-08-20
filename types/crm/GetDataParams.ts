@@ -7,14 +7,15 @@ export interface GetDataParams extends CrmApiParams{
     select_fields?:string
     reports_id?:number
     rows_per_page?:number
-    filters: ParamsFilters
+    filters?: ParamsFilters
 }
 
-interface ParamsFilters {
-    [key: string]: string | boolean | number | ParamsFilterCondition
+export interface ParamsFilters {
+    [key: string]:  string | boolean | number | ParamsFilterCondition
 }
 
 interface ParamsFilterCondition {
-    value?: string
-    condition: "not_empty_value" | "empty_value" | "include" | "exclude" | "search"
+    value?: string | number
+    condition: string
+    //"not_empty_value" | "empty_value" | "include" | "exclude" | "search"
 }

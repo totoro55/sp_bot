@@ -3,14 +3,14 @@ import {CrmApiParams} from "./CrmApiParams";
 export interface UpdateDataParams extends CrmApiParams{
     action: "update"
     entity_id:number
-    data:Data | Data[]
+    data:UpdateData | UpdateData[]
     update_by_field: UpdateByFieldParams
 }
 
-interface Data {
+export interface UpdateData {
     [key:string]: any
 }
 
-interface UpdateByFieldParams {
+export interface UpdateByFieldParams {
     [key:string] : string | string[] | number | number[]
 }

@@ -1,7 +1,7 @@
-import {Context} from "grammy";
 import {Crm} from "../../../api/crm";
+import {MyContext} from "../../../types/global/myContext";
 
-export default async function register(ctx: Context, login:string):Promise<string> {
+export default async function register(ctx: MyContext, login:string):Promise<string> {
     const crm = new Crm(
         process.env.CRM_API_KEY!,
         process.env.CRM_PASSWORD!,

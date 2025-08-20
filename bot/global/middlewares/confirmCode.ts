@@ -1,24 +1,23 @@
 import {StatelessQuestion} from "@grammyjs/stateless-question";
-import {Context, InlineKeyboard} from "grammy";
+import {InlineKeyboard} from "grammy";
+import {MyContext} from "../../../types/global/myContext";
 import confirmAuthCode from "../handlers/confirmAuthCode";
 
-const confirmInlineKeyboard = new InlineKeyboard()
-    .text("Ввести код", "confirm_code")
-
-const registerInlineKeyboard = new InlineKeyboard()
-    .text("Ввести логин", "register")
-
-const confirmCodeQuestion = new StatelessQuestion("confirm_code", async (ctx:Context) => {
+const confirmCodeQuestion = new StatelessQuestion("confirm_code", async (ctx:MyContext) => {
     if (ctx.message?.text) {
         try {
             const answer = await confirmAuthCode(ctx, ctx.message?.text)
             if (answer.status == "error" && answer.needNewCode){
-                await ctx.reply(answer.message, {reply_markup: registerInlineKeyboard})
+                await ctx.reply(answer.message, {reply_markup:
+                        new InlineKeyboard()
+                        .text("Ввести логин", "register")})
                 return
             }
 
             if (answer.status == "error" && !answer.needNewCode) {
-                await ctx.reply(answer.message, {reply_markup: confirmInlineKeyboard})
+                await ctx.reply(answer.message, {reply_markup:
+                        new InlineKeyboard()
+                        .text("Ввести код", "confirm_code")})
                 return
             }
 

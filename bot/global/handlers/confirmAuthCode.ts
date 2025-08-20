@@ -1,7 +1,7 @@
-import {Context} from "grammy";
 import {Crm} from "../../../api/crm";
+import {MyContext} from "../../../types/global/myContext";
 
-export default async function confirmAuthCode(ctx: Context, code:string):Promise<{
+export default async function confirmAuthCode(ctx: MyContext, code:string):Promise<{
     status: "error" | "success"
     message: string
     needNewCode: boolean
