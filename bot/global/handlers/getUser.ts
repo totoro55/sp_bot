@@ -4,7 +4,10 @@ import {Crm} from "../../../api/crm";
 import {MyContext} from "../../../types/global/myContext";
 
 export default async function getUser(ctx: MyContext): Promise<TUser | null> {
-    if (ctx.session && ctx.session.user) {
+
+    const now = Date.now();
+
+    if (now < ctx.session.auth_expires_in && ctx.session.user) {
         return ctx.session.user;
     }
 
@@ -27,6 +30,7 @@ export default async function getUser(ctx: MyContext): Promise<TUser | null> {
             return null
         }
         ctx.session.user = user
+        ctx.session.auth_expires_in = Date.now() + 36000000
         return user
     } catch (e) {
         await ctx.reply(`Возникла ошибка: ${JSON.stringify(e)}`)

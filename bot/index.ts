@@ -21,6 +21,7 @@ const bot = new Bot<MyContext, MyApi>(process.env.BOT_TOKEN!); // <-- place your
 function initial(): SessionData {
     return {
         user: null,
+        auth_expires_in: 0,
         selected_filial: null,
         marketing_report_period: null,
         marketing_report_files: [],

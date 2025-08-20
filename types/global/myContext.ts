@@ -9,6 +9,7 @@ import {MarketingReport} from "../marketing/MarketingReport";
 
 export interface SessionData {
     user: TUser | null;
+    auth_expires_in: number;
     selected_filial: TFilial | null
     marketing_report_period: ReportPeriod | null
     marketing_report_files: [] | string[]
