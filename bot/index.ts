@@ -110,7 +110,7 @@ bot.catch(err => {
 bot.command("start", async (ctx: MyContext) => {
     const user = await getUser(ctx)
     if (!user) return
-    await ctx.reply(`Добро пожаловать ${user.name}! Выберите интересующий вас пункт меню`, {reply_markup: startKeyboard})
+    await ctx.reply(`Добро пожаловать, ${user.name}! Выберите интересующий вас пункт меню`, {reply_markup: startKeyboard})
 });
 
 export default bot
