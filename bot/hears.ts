@@ -39,6 +39,28 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         })
     })
 
+    bot.hears("Видеоинструкция", async (ctx) => {
+        await ctx.reply("Подождите, загружается файл с инструкцией", {reply_markup: new Keyboard().text("Назад в меню").row()})
+        try {
+            await ctx.replyWithDocument(new InputFile("files/marketing_video_instruction.mp4", "Инструкция.mp4"), {
+                reply_markup:
+                    new Keyboard()
+                        .text("Отчеты о рекламных конструкциях").row()
+                        .text("Видеоинструкция").row()
+                        .text("Назад в меню").row()
+            })
+        } catch (err) {
+            await ctx.reply(`Не удалось загрузить видео. Ошибка: ${JSON.stringify(err)}`, {
+                reply_markup:
+                    new Keyboard()
+                        .text("Отчеты о рекламных конструкциях").row()
+                        .text("Видеоинструкция").row()
+                        .text("Назад в меню").row()
+            })
+        }
+
+    })
+
     bot.hears("Отчеты о рекламных конструкциях", async (ctx) => {
         const user = await getUser(ctx)
         if (!user) return
@@ -219,7 +241,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
                         comment: report.reportData.comment,
                         photos: [
                             ...ctx.session.marketing_report_curren_files.length
-                                ? ctx.session.marketing_report_curren_files.map(f=>f.fileUrl)
+                                ? ctx.session.marketing_report_curren_files.map(f => f.fileUrl)
                                 : []
                             , ...report.reportData.photos],
                     }
@@ -272,10 +294,13 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
                         const fileId = Date.now().toString()
                         const msg = await ctx.replyWithDocument(new InputFile(file.content, file.filename), {
                             caption: file.filename,
-                            reply_markup: new InlineKeyboard().text("Удалить файл", "delete_file_"+fileId)
+                            reply_markup: new InlineKeyboard().text("Удалить файл", "delete_file_" + fileId)
                         })
                         const fileUrl = await bot.api.getFile(msg.document.file_id).then(res => res.getUrl())
-                        ctx.session.marketing_report_curren_files = [...ctx.session.marketing_report_curren_files, {fileId: fileId, fileUrl: fileUrl}]
+                        ctx.session.marketing_report_curren_files = [...ctx.session.marketing_report_curren_files, {
+                            fileId: fileId,
+                            fileUrl: fileUrl
+                        }]
                     }
                 } else {
                     await ctx.reply("Не удалось загрузить файлы или файлы к указанному отчету отсутствуют.")
@@ -312,7 +337,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         const res = await addFilesToReport({
             reportId: ctx.session.marketing_report?.reportId, photos: [
                 ...ctx.session.marketing_report_curren_files.length
-                    ? ctx.session.marketing_report_curren_files.map(f=>f.fileUrl)
+                    ? ctx.session.marketing_report_curren_files.map(f => f.fileUrl)
                     : []
                 , ...ctx.session.marketing_report.reportData.photos]
         }, user)
@@ -341,7 +366,8 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
             reply_markup: new Keyboard()
                 .text("Заполнение отчета о РК").row()
                 .text("Выбор филиала").row()
-                .text("Назад в меню").row()})
+                .text("Назад в меню").row()
+        })
     });
 }
 
