@@ -4,7 +4,7 @@ export default async function addDataToEntity(params: SendDataParams): Promise<n
     const res = await fetch("http://southproject.partner.ru/api/rest.php", {
         method: "POST",
         body: JSON.stringify(params),
-        keepalive:false
+        //keepalive:false
     })
     const body = await res.json()
     if (res.status !== 200) {

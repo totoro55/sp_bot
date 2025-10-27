@@ -5,6 +5,7 @@ import {Keyboard} from "grammy";
 
 const selectMarketingReportPeriod = async (ctx:MyContext) => {
     await ctx.answerCallbackQuery()
+    await ctx.editMessageText("Подождите, информация загружается...", {reply_markup: undefined})
     const match = ctx.callbackQuery?.data?.match(/marketing_report_period_(\d+)/);
     const id = match ? match[1] : null;
     if (!id) {
@@ -24,7 +25,7 @@ const selectMarketingReportPeriod = async (ctx:MyContext) => {
     }
 
     ctx.session.marketing_report_period = reportPeriod
-    await ctx.reply(`Выбран период ${reportPeriod.name}:`, {
+    await ctx.reply(`Выбран период ${reportPeriod.name}. Вы можете перейти к выбору РК или изменить период:`, {
         reply_markup: new Keyboard()
             .text("Выбрать рекламную конструкцию").row()
             .text("Выбрать другой период").row()

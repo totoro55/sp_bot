@@ -1,6 +1,6 @@
 import {Crm} from "../../../api/crm";
 
-export default async function getAdvertisingStructuresById(id: string) {
+export default async function getReportCurrentPhotosByReportId(id: number) {
     const crm = new Crm(
         process.env.CRM_API_KEY!,
         process.env.CRM_PASSWORD!,
@@ -8,15 +8,13 @@ export default async function getAdvertisingStructuresById(id: string) {
     )
 
     const params = {
-        entity_id: 212,
-        select_fields: "3713, 3711, 3710, 3714, 3715, 3716",
-        filters: {
-            "id": id
-        }
+        entity_id: 213,
+        item_id: id,
+        field_id: 3726
     }
 
     try {
-        return await crm.getData(params)
+        return await crm.downloadAttachments(params)
     } catch (e) {
         throw new Error(JSON.stringify(e))
     }

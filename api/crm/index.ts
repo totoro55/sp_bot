@@ -34,7 +34,7 @@ export class Crm {
             return `Вам уже был отправлен код подтверждения. Введите код, отправленный на почтовый ящик. Новый код можно будет отправить после ${new Date(authCode.expiresIn).toLocaleTimeString()}`
         } else {
             await sendAuthCode(user, chatId, this.config)
-            return "Код успешно отправлен на ваш рабочий почтовый ящик. Введите код полученный по email:"
+            return "Код успешно отправлен на ваш рабочий почтовый ящик. Введите код, полученный по email:"
         }
     }
 
@@ -68,7 +68,7 @@ export class Crm {
             await setAuthCodeInactive(authCode, this.config)
             return {
                 status: "success",
-                message: "Поздарвляем с регистрацией. Теперь вы можете перейти к использованию функционала бота.",
+                message: "Поздравляем с регистрацией. Теперь вы можете перейти в меню бота.",
                 needNewCode: false
             }
         }

@@ -1,9 +1,8 @@
 import {Crm} from "../../../api/crm";
-import {MarketingReport} from "../../../types/marketing/MarketingReport";
 import {TUser} from "../../../types/global/TUser";
 
-const updateReport = async (
-    report: MarketingReport, periodId: string, user: TUser
+const addFilesToReport = async (
+    report: {reportId:string, photos: Array<string | {[p:string]: string}>}, user: TUser
 ) => {
     const crm = new Crm(
         process.env.CRM_API_KEY!,
@@ -15,9 +14,7 @@ const updateReport = async (
         entity_id: 213,
         data: {
             created_by: user.id,
-            field_3724: report.reportData.status == "Все ок" ? 4316 : 4317,
-            field_3725: report.reportData.comment,
-            field_3726: report.reportData.photos.join(","),
+            field_3726: report.photos.join(","),
             field_3727: 1798,
             field_4134: 1
         },
@@ -29,7 +26,7 @@ const updateReport = async (
         if (res) {
             return {status: "success", message: "Отчет успешно обновлен."}
         }
-        return {status: "error", message: "Отчет не был добавлен."}
+        return {status: "error", message: "Не удалось обновить данные отчета."}
     } catch (error) {
         if (error instanceof Error) {
             return {status: "error", message: error.message}
@@ -41,4 +38,4 @@ const updateReport = async (
 
 }
 
-export default updateReport
+export default addFilesToReport

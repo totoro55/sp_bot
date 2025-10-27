@@ -17,7 +17,7 @@ export default async function confirmAuthCode(ctx: MyContext, code:string):Promi
 
     if (!chatId) return {status: "error", message:"Нет chat id. Подтверждение невозможно.", needNewCode:false}
 
-    if (!code) return {status: "error", message:"Код не может быть пустым введите код подтверждения.", needNewCode:false}
+    if (!code) return {status: "error", message:"Код не может быть пустым. Введите код подтверждения.", needNewCode:false}
 
     return await crm.confirmCode(chatId, code, expiresIn)
 }

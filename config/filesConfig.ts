@@ -1,0 +1,1 @@
+export const MAX_PHOTO_SIZE_IN_BYTES = 2000000
