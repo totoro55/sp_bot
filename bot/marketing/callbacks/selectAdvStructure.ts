@@ -20,7 +20,7 @@ const selectAdvStructure = async (ctx: MyContext) => {
     const advStructure = await getAdvertisingStructuresById(id)
     const reportData = await getReport(id, ctx.session.marketing_report_period?.id || "")
     if (!advStructure || advStructure.length === 0) {
-        await ctx.reply("Рекламная конструкция не найдена или произошла ошибка при получении информации о рк, обратитесь к ответственным - Admins.Southproject@dns-shop.ru", {reply_markup: backKeyboard})
+        await ctx.reply("Рекламная конструкция не найдена либо произошла ошибка при получении информации о РК. Для уточнения обратитесь к ответственным сотрудникам - Admins.Southproject@dns-shop.ru", {reply_markup: backKeyboard})
         ctx.session.marketing_report = null
         return
     }
@@ -33,7 +33,11 @@ const selectAdvStructure = async (ctx: MyContext) => {
 
     if (report && report["3727"] == "Проверен") {
         await ctx.reply(`${advStructureDescription} 
-            ${report && `\n\nПо рекламной конструкции уже создан отчет за указанный период:\n${report["3723"]}\nСтатус отчета:\n${report["3727"]}\n\nПо данной рекламной конструкции отчет за период ${ctx.session.marketing_report_period?.name} уже заполнен и проверен. Выберите другую РК или укажите другой период.`}`
+            ${report && `\n\nПо рекламной конструкции уже создан отчет за указанный период:
+            \n${report["3723"]}
+            \nСтатус отчета:\n${report["3727"]}
+            \nКомментарий сотрудника отдела рекламы:\n${report["4247"] ? report["4247"] : ""}
+            \n\nПо данной рекламной конструкции отчет за период ${ctx.session.marketing_report_period?.name} уже заполнен и проверен. Выберите другую РК или укажите другой период.`}`
             , {
                 reply_markup: new Keyboard()
                     .text("Выбрать рекламную конструкцию").row()
@@ -67,7 +71,11 @@ const selectAdvStructure = async (ctx: MyContext) => {
 
     if (!photo["content"] || !decoded) {
         await ctx.reply(`${advStructureDescription} 
-            ${report ? `\n\nПо рекламной конструкции уже создан отчет за указанный период:\n${report["3723"]}\nСтатус отчета:\n${report["3727"]}\n\nВы можете отредактировать отчет или добавить фото/видео к уже имеющимся.` : ""}`
+            ${report ? `\n\nПо рекламной конструкции уже создан отчет за указанный период:
+            \n${report["3723"]}
+            \nСтатус отчета:\n${report["3727"]}
+            \nКомментарий сотрудника отдела рекламы:\n${report["4247"] ? report["4247"] : ""}
+            \n\nВы можете отредактировать отчет или добавить фото/видео к уже имеющимся.` : ""}`
             , {
                 reply_markup: reportKeyboard
             })
@@ -84,12 +92,20 @@ const selectAdvStructure = async (ctx: MyContext) => {
         await ctx.replyWithPhoto(
             new InputFile(decoded), {
                 caption: `${advStructureDescription}  
-            ${report ? `\n\nПо рекламной конструкции уже создан отчет за указанный период:\n${report["3723"]}\nСтатус отчета:\n${report["3727"]}\n\nВы можете отредактировать отчет или добавить фото/видео к уже имеющимся` : ""}`,
+            ${report ? `\n\nПо рекламной конструкции уже создан отчет за указанный период:
+            \n${report["3723"]}
+            \nСтатус отчета:\n${report["3727"]}
+            \nКомментарий сотрудника отдела рекламы:\n${report["4247"] ? report["4247"] : ""}
+            \n\nВы можете отредактировать отчет или добавить фото/видео к уже имеющимся` : ""}`,
                 reply_markup: reportKeyboard
             })
     } catch (e) {
         await ctx.reply(`Не удалось загрузть фото конструкции.\n\n${advStructureDescription} 
-        ${report ? `\n\nПо рекламной конструкции уже создан отчет за указанный период:\n${report["3723"]}\nСтатус отчета:\n${report["3727"]}\n\nВы можете отредактировать отчет или добавить фото/видео к уже имеющимся.` : ""}`
+        ${report ? `\n\nПо рекламной конструкции уже создан отчет за указанный период:
+        \n${report["3723"]}
+        \nСтатус отчета:\n${report["3727"]}
+        \nКомментарий сотрудника отдела рекламы:\n${report["4247"] ? report["4247"] : ""}
+        \n\nВы можете отредактировать отчет или добавить фото/видео к уже имеющимся.` : ""}`
             , {
                 reply_markup: reportKeyboard
             })

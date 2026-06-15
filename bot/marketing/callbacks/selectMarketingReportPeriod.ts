@@ -15,12 +15,12 @@ const selectMarketingReportPeriod = async (ctx:MyContext) => {
 
     const reportPeriods = await getActiveReportPeriods()
     if (!reportPeriods || reportPeriods.length === 0) {
-        await ctx.reply("Нет активных отчетов. Попробуйте позже или обратитесь к ответственным.", {reply_markup: backKeyboard})
+        await ctx.reply("Нет активных периодов отчетов. Попробуйте позже или обратитесь к ответственным сотрудникам Отдела Рекламы.", {reply_markup: backKeyboard})
         return
     }
     const reportPeriod = reportPeriods.find(r=>r.id===id)
     if (!reportPeriod) {
-        await ctx.reply("Период не найден или закрыт. Попробуйте позже или обратитесь к ответственным.", {reply_markup: backKeyboard})
+        await ctx.reply("Период не найден или закрыт. Попробуйте позже или обратитесь к ответственным сотрудникам Отдела Рекламы.", {reply_markup: backKeyboard})
         return
     }
 

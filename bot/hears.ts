@@ -49,6 +49,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
                         .text("Видеоинструкция").row()
                         .text("Назад в меню").row()
             })
+
         } catch (err) {
             await ctx.reply(`Не удалось загрузить видео. Ошибка: ${JSON.stringify(err)}`, {
                 reply_markup:
@@ -115,7 +116,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         }
         const reportPeriods = await getActiveReportPeriods()
         if (!reportPeriods || reportPeriods.length === 0) {
-            await ctx.reply(`На текущий момент не происходит сбор отчетов. Если уверены, что вам необходимо отправить отчет о состоянии РК - обратитесь к ответственным сотрудникам отдела рекламы.`,
+            await ctx.reply(`На текущий момент не происходит сбор отчетов. Если уверены, что вам необходимо отправить отчет о состоянии РК - обратитесь к ответственным сотрудникам Отдела Рекламы.`,
                 {
                     reply_markup: new Keyboard()
                         .text("Назад в меню").row()
@@ -144,7 +145,8 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         }
         const reportPeriods = await getActiveReportPeriods()
         if (!reportPeriods || reportPeriods.length === 0) {
-            await ctx.reply(`На текущий момент не происходит сбор отчетов. Если уверены, что вам необходимо отправить отчет о состоянии РК - обратитесь к ответственным сотрудникам отдела рекламы.`,
+            await ctx.reply(`В настоящее время сбор отчётов не производится. 
+            В случае необходимости отправки отчёта о состоянии РК просим обратиться к ответственным сотрудникам отдела рекламы.`,
                 {
                     reply_markup: new Keyboard()
                         .text("Назад в меню").row()
@@ -185,7 +187,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
 
         const advStructures = await getAdvertisingStructuresByFilial(filial)
         if (!advStructures || advStructures.length === 0) {
-            await ctx.reply(`Не найдены рекламные конструкции по указанному филиалу. Обратитесь в Отдел рекламы.`, {
+            await ctx.reply(`Рекламные конструкции по указанному филиалу не найдены. Обратитесь к ответственным сотрудникам отдела рекламы.`, {
                 reply_markup: new Keyboard()
                     .text("Выбор филиала").row()
                     .text("Назад в меню").row()

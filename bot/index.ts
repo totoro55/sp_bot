@@ -13,12 +13,25 @@ import addHears from "./hears";
 import report from "./marketing/conversations/report";
 import getReportCurrentPhotosByReportId from "./marketing/handlers/getReportCurrentPhotosByReportId";
 import {getFilesFromZip} from "./marketing/helpers/getPhotosFromZip";
-
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 require('dotenv').config();
 
+const agent = new HttpsProxyAgent('http://mow2-it-proxy-haproxy.partner.ru:3128');
+
 // Create a bot object
-const bot = new Bot<MyContext, MyApi>(process.env.BOT_TOKEN!); // <-- place your bot token in this string
+const bot = new Bot<MyContext, MyApi>(process.env.BOT_TOKEN!,
+    {
+        client: {
+            baseFetchConfig: {
+                agent: agent,
+                compress: true,
+            }
+        }
+    }
+)
+
+
 
 function initial(): SessionData {
     return {
