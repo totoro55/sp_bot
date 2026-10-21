@@ -1,17 +1,17 @@
 import {TUser} from "../../../types/global/TUser";
 
-export default function createUserFromData (data:
-                         {
-                             id: string
-                             "6": string
-                             "7":string
-                             "8":string
-                             "9":string
-                             "3732_db_value":string
-                             "3732":string[]
-                             "3733":string
-                         }
-): TUser{
+export type CrmUserRow = {
+    id: string
+    "6": string
+    "7": string
+    "8": string
+    "9": string
+    "3732_db_value": string
+    "3732": string[]
+    "3733": string
+};
+
+export default function createUserFromData(data: CrmUserRow): TUser {
     return {
         id: data.id,
         access_group:data["6"],

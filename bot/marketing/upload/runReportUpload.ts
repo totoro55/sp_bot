@@ -41,13 +41,17 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
 
     const show = (text: string) => editProgress(api, job.chatId, job.progressMessageId, text);
 
+    const loadPrepared = async (file: PendingFile, index: number) => {
+        await show(fileProgressText(job.place, index, total, file.fileName));
+        const content = await downloadTelegramFile(api, file.telegramFileId, maxUploadBytes(file.video));
+        return prepareCrmFile(content, file.fileName, file.heic);
+    };
+
     try {
         if (!reportId) {
             const first = job.newFiles[0];
             if (!first) throw new Error("В отчете нет файлов для отправки");
-            await show(fileProgressText(job.place, 1, total, first.fileName));
-            const content = await downloadTelegramFile(api, first.telegramFileId, maxUploadBytes(first.video));
-            const prepared = await prepareCrmFile(content, first.fileName, first.heic);
+            const prepared = await loadPrepared(first, 1);
             reportId = await insertReport(job.advStructureId, job.periodId, {
                 userId: job.userId,
                 status: job.status,
@@ -72,9 +76,7 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
         const start = job.reportId ? 0 : 1;
         for (let index = start; index < job.newFiles.length; index += 1) {
             const file = job.newFiles[index];
-            await show(fileProgressText(job.place, index + 1, total, file.fileName));
-            const content = await downloadTelegramFile(api, file.telegramFileId, maxUploadBytes(file.video));
-            const prepared = await prepareCrmFile(content, file.fileName, file.heic);
+            const prepared = await loadPrepared(file, index + 1);
             await updateReportAttachments(reportId!, [
                 ...namesOnly(kept),
                 {name: prepared.fileName, content: prepared.content.toString("base64")},
