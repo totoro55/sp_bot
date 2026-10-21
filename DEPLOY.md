@@ -1,74 +1,92 @@
-# Запуск бота на ПК в корпсети
+# Запуск на Windows через Docker
 
-Бот ходит в Telegram длинным опросом и в CRM South Project по HTTP. Снаружи в эту машину стучаться не нужно: GitHub Actions только ставит задачу, а выполняет её runner, который сам установлен на ПК.
+Бот работает в Linux-контейнере Docker Desktop. На ПК в корпсети стоит self-hosted runner: после push в `main` GitHub Actions сам обновляет код и перезапускает контейнер. Входящий доступ к этому ПК из интернета не нужен.
 
-Один и тот же `BOT_TOKEN` может обслуживать только один процесс. Пока контейнер запущен, локальный `npm run dev` с этим токеном лучше не поднимать.
+Один `BOT_TOKEN` обслуживает только один процесс. Пока контейнер запущен, второй экземпляр с тем же токеном не запускайте.
 
-## Что должно быть на ПК
+Docker Desktop должен быть в режиме Linux containers.
 
-- Linux, либо Windows с WSL2 (Ubuntu). Runner и Docker ставятся внутри этого Linux: у Docker Desktop на Windows `network_mode: host` из `docker-compose.yml` работает иначе, а боту нужна корп. DNS (`*.partner.ru`).
-- Docker Engine и плагин Compose v2 (`docker compose version`).
-- Исходящий доступ к `github.com`, Docker Hub и `registry.npmjs.org`. Если они открываются только через прокси, его нужно прописать и демону Docker, и сборке (ниже).
-- Доступ к CRM (`CRM_URL`) и к прокси Telegram без дополнительного NAT.
+## 1. Docker Desktop
 
-Пользователь, от которого работает runner, должен быть в группе `docker`.
+Установите Docker Desktop с бэкендом WSL2 и дождитесь статуса Running.
 
-## 1. Файл окружения
-
-Файл лежит вне каталога сборки, чтобы `checkout` его не затирал.
-
-```bash
-sudo mkdir -p /opt/sp_bot
-sudo cp .env.example /opt/sp_bot/.env
-sudo chmod 600 /opt/sp_bot/.env
+```powershell
+docker compose version
 ```
 
-Заполните `BOT_TOKEN`, `CRM_URL`, `CRM_API_KEY`, `CRM_PASSWORD`, `CRM_USER`. `TELEGRAM_PROXY_URL` оставьте корп. прокси. Если у машины есть прямой выход в Telegram, поставьте `TELEGRAM_PROXY_URL=none`.
+Если Docker Hub и `registry.npmjs.org` открываются только через корп. прокси: Settings → Resources → Proxies → Manual.
 
-Если `npm ci` внутри образа не видит интернет, раскомментируйте в этом же файле `BUILD_HTTP_PROXY` и `BUILD_HTTPS_PROXY`. Для демона Docker (скачивание `node:22-bookworm-slim`) на Linux:
+- Web Server: `http://mow2-it-proxy-haproxy.partner.ru:3128`
+- Bypass: `localhost,127.0.0.1,.partner.ru`
 
-```ini
-# /etc/systemd/system/docker.service.d/http-proxy.conf
-[Service]
-Environment="HTTP_PROXY=http://mow2-it-proxy-haproxy.partner.ru:3128"
-Environment="HTTPS_PROXY=http://mow2-it-proxy-haproxy.partner.ru:3128"
-Environment="NO_PROXY=localhost,127.0.0.1,.partner.ru"
+Нажмите Apply & Restart. Включите Start Docker Desktop when you sign in.
+
+Учётная запись Windows, под которой будет работать runner, должна входить в группу `docker-users`. После добавления в группу выйдите из Windows и зайдите снова.
+
+## 2. Файл окружения
+
+Каталог `C:\sp_bot` не стирается при обновлении репозитория.
+
+```powershell
+New-Item -ItemType Directory -Force C:\sp_bot
+Copy-Item .env.example C:\sp_bot\.env
+notepad C:\sp_bot\.env
 ```
 
-После этого: `sudo systemctl daemon-reload && sudo systemctl restart docker`.
+Заполните `BOT_TOKEN`, `CRM_URL`, `CRM_API_KEY`, `CRM_PASSWORD`, `CRM_USER`. `TELEGRAM_PROXY_URL` оставьте корп. прокси. Если пакеты при сборке образа не скачиваются, раскомментируйте `BUILD_HTTP_PROXY` и `BUILD_HTTPS_PROXY`.
 
-Проверка руками из корня репозитория:
+## 3. Runner
 
-```bash
-export ENV_FILE=/opt/sp_bot/.env
-docker compose --env-file "$ENV_FILE" up -d --build
-docker logs -f sp-bot
+В GitHub откройте репозиторий `sp_bot`: Settings → Actions → Runners → New self-hosted runner → Windows → PowerShell.
+
+В блоке меток допишите `sp-bot`. Итоговый набор: `self-hosted`, `Windows`, `X64`, `sp-bot`. Workflow ждёт метки `self-hosted`, `Windows` и `sp-bot`.
+
+Команды из этой страницы выполните в PowerShell на ПК. В конце установите runner службой от той же учётной записи, которой пользуетесь вы и которой доступен Docker:
+
+```powershell
+.\svc.ps1 install
+.\svc.ps1 start
 ```
 
-В логе должно появиться `Бот запущен: @...`. Остановка: `docker compose --env-file /opt/sp_bot/.env down`.
+В Settings → Actions → Runners статус должен быть Idle.
 
-## 2. Self-hosted runner
-
-В репозитории: Settings → Actions → Runners → New self-hosted runner. Ставьте runner в Linux (или в WSL2), не в PowerShell на Windows.
-
-На шаге настройки меток добавьте `sp-bot` к стандартным `self-hosted` и `linux`. Workflow ждёт обе метки: `self-hosted` и `sp-bot`.
-
-Запускайте runner как сервис (`svc.sh install` и `svc.sh start` из инструкции GitHub), от пользователя, который входит в группу `docker`.
-
-## 3. Включить выкладку
-
-Пока переменная не задана, workflow Deploy не занимает runner и не висит в очереди.
+## 4. Включить автоматическое обновление
 
 Settings → Secrets and variables → Actions → Variables → New repository variable:
 
 - имя: `DEPLOY_ENABLED`
 - значение: `true`
 
-После этого:
+Пока переменной нет, push в `main` только проверяет сборку на серверах GitHub и не трогает ПК.
 
-- push в `main` сам собирает образ на этом ПК и перезапускает контейнер `sp-bot`;
-- вручную то же самое делает Actions → Deploy → Run workflow. Так можно выложить и другую ветку, не дожидаясь слияния в `main`.
+После `DEPLOY_ENABLED=true` каждый push в `main` на этом ПК делает `git checkout`, собирает образ и перезапускает контейнер `sp-bot`. Тот же шаг вручную: Actions → Deploy → Run workflow.
 
-Логи контейнера на ПК: `docker logs -f sp-bot`. Логи самого шага — во вкладке Actions.
+Лог шага смотрите во вкладке Actions. Лог бота на ПК:
 
-Сборка без деплоя (типчек и `tsc`) идёт отдельно в workflow CI на серверах GitHub при каждом push и pull request.
+```powershell
+docker logs -f sp-bot
+```
+
+В логе должна быть строка `Бот запущен: @...`.
+
+Остановка:
+
+```powershell
+docker compose --env-file C:/sp_bot/.env down
+```
+
+## Если имена *.partner.ru не открываются из контейнера
+
+В `ipconfig /all` найдите DNS Servers. Добавьте адрес в сервис `bot` в `docker-compose.yml`:
+
+```yaml
+dns:
+  - 10.0.0.1
+```
+
+Подставьте свой адрес и запушьте изменение в `main` либо выполните на ПК:
+
+```powershell
+$env:ENV_FILE = 'C:/sp_bot/.env'
+docker compose --env-file C:/sp_bot/.env up -d --force-recreate
+```

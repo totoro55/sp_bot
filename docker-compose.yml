@@ -12,7 +12,6 @@ services:
     container_name: sp-bot
     env_file:
       - ${ENV_FILE:-.env}
-    network_mode: host
     restart: unless-stopped
     stop_grace_period: 20s
     logging:

@@ -15,24 +15,24 @@ permissions:
 jobs:
   deploy:
     if: vars.DEPLOY_ENABLED == 'true'
-    runs-on: [self-hosted, sp-bot]
+    runs-on: [self-hosted, Windows, sp-bot]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Check env file
-        shell: bash
+        shell: powershell
         run: |
-          if [ ! -f /opt/sp_bot/.env ]; then
-            echo "Создайте /opt/sp_bot/.env по образцу .env.example"
+          if (-not (Test-Path 'C:\sp_bot\.env')) {
+            Write-Host 'Создайте C:\sp_bot\.env по образцу .env.example'
             exit 1
-          fi
+          }
 
       - name: Build and restart
-        shell: bash
+        shell: powershell
         env:
-          ENV_FILE: /opt/sp_bot/.env
+          ENV_FILE: C:/sp_bot/.env
         run: |
-          docker compose --env-file "$ENV_FILE" up -d --build --force-recreate --remove-orphans
+          docker compose --env-file C:/sp_bot/.env up -d --build --force-recreate --remove-orphans
           docker image prune -f
           docker ps --filter name=sp-bot
