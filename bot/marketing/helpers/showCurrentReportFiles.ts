@@ -4,6 +4,8 @@ import getReportCurrentPhotosByReportId from "../handlers/getReportCurrentPhotos
 import {createFileId} from "./fileIds";
 import {getFilesFromZip} from "./getPhotosFromZip";
 import {readableError} from "../../global/helpers/readableError";
+import {attachmentDisplayName, pairStorageNames} from "../upload/attachmentNames";
+import {readReportAttachmentNames} from "../upload/crmReport";
 
 const showCurrentReportFiles = async (ctx: MyContext): Promise<void> => {
     const reportId = ctx.session.marketing_report?.reportId;
@@ -21,25 +23,37 @@ const showCurrentReportFiles = async (ctx: MyContext): Promise<void> => {
             return;
         }
 
+        const storedNames = await readReportAttachmentNames(reportId);
         if (files.length === 0) {
+            if (storedNames.length > 0) {
+                await ctx.reply("Не удалось показать файлы отчета. Отправка остановлена, чтобы не удалить их.");
+                return;
+            }
             ctx.session.marketing_report_curren_files = [];
             ctx.session.reportFilesSynced = true;
             await ctx.reply("Файлы к указанному отчету отсутствуют.");
             return;
         }
 
+        const storageNames = pairStorageNames(files.map((file) => file.filename), storedNames);
+        if (!storageNames) {
+            await ctx.reply("Не удалось сопоставить файлы отчета. Отправка остановлена, чтобы не удалить их.");
+            return;
+        }
+
         const loaded: {fileId: string; fileName: string}[] = [];
-        for (const file of files) {
+        for (const [index, file] of files.entries()) {
             const fileId = createFileId();
-            const msg = await ctx.replyWithDocument(new InputFile(file.content, file.filename), {
-                caption: file.filename,
+            const shownName = attachmentDisplayName(storageNames[index] || file.filename || "file");
+            const msg = await ctx.replyWithDocument(new InputFile(file.content, shownName), {
+                caption: shownName,
                 reply_markup: new InlineKeyboard().text("Удалить файл", `delete_file_${fileId}`),
             });
             if (!msg.document) {
                 await ctx.reply("Не удалось показать все файлы отчета. Отправка будет остановлена, чтобы не удалить их.");
                 return;
             }
-            loaded.push({fileId, fileName: file.filename || "file"});
+            loaded.push({fileId, fileName: storageNames[index] || file.filename || "file"});
         }
 
         ctx.session.marketing_report_curren_files = loaded;

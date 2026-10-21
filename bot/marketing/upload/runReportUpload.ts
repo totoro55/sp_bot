@@ -5,7 +5,7 @@ import {addFilesKeyboard, reportActionsKeyboard} from "../keyboards/report";
 import {maxUploadBytes} from "../../../config/filesConfig";
 import {downloadTelegramFile} from "./downloadTelegramFile";
 import {prepareCrmFile} from "./heicToJpeg";
-import {insertReport, updateReportAttachments, updateReportMeta} from "./crmReport";
+import {insertReport, readReportAttachmentNames, updateReportAttachments, updateReportMeta} from "./crmReport";
 import {deleteServiceMessage, editProgress, fileProgressText, sendKeyboard, textWithPlace} from "./progress";
 import {patchBusySession} from "./sessionPatch";
 
@@ -41,6 +41,14 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
 
     const show = (text: string) => editProgress(api, job.chatId, job.progressMessageId, text);
 
+    const adoptStoredNames = async (id: string, previousCount: number): Promise<void> => {
+        const stored = await readReportAttachmentNames(id);
+        if (stored.length < previousCount + 1) {
+            throw new Error("CRM не подтвердила сохранение файла. Отправка остановлена, чтобы не удалить уже загруженные.");
+        }
+        kept.splice(0, kept.length, ...stored);
+    };
+
     const loadPrepared = async (file: PendingFile, index: number) => {
         await show(fileProgressText(job.place, index, total, file.fileName));
         const content = await downloadTelegramFile(api, file.telegramFileId, maxUploadBytes(file.video));
@@ -58,7 +66,7 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
                 comment: job.comment,
                 includeStatus: true,
             }, [{name: prepared.fileName, content: prepared.content.toString("base64")}]);
-            kept.push(prepared.fileName);
+            await adoptStoredNames(reportId, kept.length);
             uploadedIds.push(first.telegramFileId);
         } else {
             await show(textWithPlace(job.place, "Отчет принят. Сохраняю данные."));
@@ -77,11 +85,12 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
         for (let index = start; index < job.newFiles.length; index += 1) {
             const file = job.newFiles[index];
             const prepared = await loadPrepared(file, index + 1);
+            const previousCount = kept.length;
             await updateReportAttachments(reportId!, [
                 ...namesOnly(kept),
                 {name: prepared.fileName, content: prepared.content.toString("base64")},
             ]);
-            kept.push(prepared.fileName);
+            await adoptStoredNames(reportId!, previousCount);
             uploadedIds.push(file.telegramFileId);
         }
 
@@ -118,12 +127,11 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
                 }
                 if (reportId) report.reportId = reportId;
                 const uploaded = new Set(uploadedIds);
-                const done = job.newFiles.filter((file) => uploaded.has(file.telegramFileId));
                 report.newFiles = (report.newFiles ?? []).filter((file) => !uploaded.has(file.telegramFileId));
-                session.marketing_report_curren_files = [
-                    ...session.marketing_report_curren_files,
-                    ...done.map((file) => ({fileId: createFileId(), fileName: file.fileName})),
-                ];
+                session.marketing_report_curren_files = kept.map((fileName) => ({
+                    fileId: createFileId(),
+                    fileName,
+                }));
                 session.reportFilesSynced = true;
                 return;
             }

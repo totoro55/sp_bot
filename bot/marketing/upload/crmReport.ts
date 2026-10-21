@@ -1,4 +1,5 @@
 import {createCrm} from "../../../api/crm";
+import {parseAttachmentField} from "./attachmentNames";
 
 type CrmAttachment = {name: string; content?: string};
 
@@ -52,6 +53,18 @@ const updateReportMeta = async (reportId: string, meta: ReportMeta): Promise<voi
     });
 };
 
+const readReportAttachmentNames = async (reportId: string): Promise<string[]> => {
+    const crm = createCrm();
+    const rows = await crm.getData({
+        entity_id: 213,
+        select_fields: "3726",
+        limit: 1,
+        filters: {id: reportId},
+    });
+    const row = rows[0] as {[key: string]: unknown} | undefined;
+    return parseAttachmentField(row?.["3726"]);
+};
+
 const updateReportAttachments = async (reportId: string, attachments: CrmAttachment[]): Promise<void> => {
     const crm = createCrm();
     await crm.updateData({
@@ -61,5 +74,5 @@ const updateReportAttachments = async (reportId: string, attachments: CrmAttachm
     });
 };
 
-export {insertReport, updateReportAttachments, updateReportMeta};
+export {insertReport, readReportAttachmentNames, updateReportAttachments, updateReportMeta};
 export type {CrmAttachment, ReportMeta};
