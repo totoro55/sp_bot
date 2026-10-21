@@ -1,4 +1,5 @@
 import {Bot, InlineKeyboard, InputFile} from "grammy";
+import {readableError} from "./global/helpers/readableError";
 import {MyApi, MyContext} from "../types/global/myContext";
 import {MarketingReport} from "../types/marketing/MarketingReport";
 import getUser from "./global/handlers/getUser";
@@ -14,9 +15,13 @@ import {showCurrentReportFiles} from "./marketing/helpers/showCurrentReportFiles
 import {reportPhotoUrls} from "./marketing/helpers/reportPhotoUrls";
 import {askReportPeriod, requireFilial} from "./marketing/helpers/askReportPeriod";
 import {clearMarketingReport, resetMarketingSession} from "./marketing/helpers/reportSession";
+import {reportPlace, savedReportText} from "./marketing/helpers/reportContext";
+import {replyInlineChoice} from "./marketing/helpers/replyInlineChoice";
+import {structureListButtons} from "./marketing/helpers/structureLabel";
 import {
     addFilesKeyboard,
     backToMenuKeyboard,
+    changeStructureOrPeriodKeyboard,
     chooseFilialKeyboard,
     choosePeriodKeyboard,
     continueReportKeyboard,
@@ -40,7 +45,8 @@ const reportWithPhotos = (ctx: MyContext): MarketingReport | null => {
     };
 };
 
-const replyReportSaved = async (ctx: MyContext, message: string) => {
+const replyReportSaved = async (ctx: MyContext, lead: string) => {
+    const message = savedReportText(ctx, lead);
     clearMarketingReport(ctx);
     await ctx.reply(message, {reply_markup: reportActionsKeyboard});
 };
@@ -73,7 +79,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
                 reply_markup: marketingMenuKeyboard,
             });
         } catch (err) {
-            await ctx.reply(`Не удалось загрузить видео. Ошибка: ${JSON.stringify(err)}`, {
+            await ctx.reply(`Не удалось загрузить видео. ${readableError(err)}`, {
                 reply_markup: marketingMenuKeyboard,
             });
         }
@@ -132,8 +138,10 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         }
 
         const keyboard = new InlineKeyboard();
-        advStructures.forEach((adv, index) => keyboard.text(`${index + 1}. ${adv["3710"]}`, `adv_structure_${adv.id}`).row());
-        await ctx.reply("Выберите рекламную конструкцию:", {reply_markup: keyboard});
+        structureListButtons(advStructures).forEach((item) => {
+            keyboard.text(item.text, `adv_structure_${item.id}`).row();
+        });
+        await replyInlineChoice(ctx, "Выберите рекламную конструкцию:", keyboard);
     });
 
     bot.hears(["Редактировать отчет", "Заполнить отчет"], async (ctx) => {
@@ -153,7 +161,12 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
 
         const report = reportWithPhotos(ctx);
         const period = ctx.session.marketing_report_period;
-        if (!report || !period) return;
+        if (!report || !period) {
+            await ctx.reply("Не выбран отчет или период. Начните заполнение заново.", {
+                reply_markup: filialActionsKeyboard,
+            });
+            return;
+        }
 
         if (report.reportData.photos.length === 0) {
             await ctx.reply(NEED_REPORT_FILE_PROMPT, {
@@ -167,10 +180,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
             : await addReport(report, period.id, user);
 
         if (res.status == "success") {
-            const message = report.reportId
-                ? "Отчет успешно обновлен. Вы можете заполнить отчет по другой РК или вернуться в главное меню."
-                : "Отчет успешно добавлен. Вы можете заполнить отчет по другой РК или вернуться в главное меню.";
-            await replyReportSaved(ctx, message);
+            await replyReportSaved(ctx, report.reportId ? "Отчет успешно обновлен." : "Отчет успешно добавлен.");
             return;
         }
 
@@ -180,11 +190,18 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         await replyReportFailed(ctx, message);
     });
 
-    bot.hears("Добавить фото/видео к имеющемуся отчету", async (ctx) => {
+    bot.hears("Добавить фото/видео к отчету", async (ctx) => {
         const user = await getUser(ctx);
         if (!user) return;
-        if (!ctx.session.marketing_report?.reportId) return;
+        if (!ctx.session.marketing_report?.reportId) {
+            await ctx.reply("Сначала выберите конструкцию, по которой уже есть отчет.", {
+                reply_markup: changeStructureOrPeriodKeyboard,
+            });
+            return;
+        }
 
+        const place = reportPlace(ctx);
+        if (place) await ctx.reply(place);
         await showCurrentReportFiles(ctx);
         await ctx.reply(ADD_REPORT_FILES_PROMPT, {
             reply_markup: addFilesKeyboard("Завершить добавление файлов к отчету"),
@@ -196,7 +213,12 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         if (!user) return;
 
         const report = reportWithPhotos(ctx);
-        if (!report?.reportId) return;
+        if (!report?.reportId) {
+            await ctx.reply("Не выбран отчет, к которому нужно добавить файлы. Выберите конструкцию заново.", {
+                reply_markup: filialActionsKeyboard,
+            });
+            return;
+        }
 
         if (report.reportData.photos.length === 0) {
             await ctx.reply(NEED_REPORT_FILE_PROMPT, {
@@ -207,7 +229,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
 
         const res = await addFilesToReport({reportId: report.reportId, photos: report.reportData.photos}, user);
         if (res.status == "success") {
-            await replyReportSaved(ctx, "Файлы успешно добавлены к отчету. Вы можете заполнить отчет по другой РК или вернуться в главное меню.");
+            await replyReportSaved(ctx, "Файлы успешно добавлены к отчету.");
             return;
         }
         await replyReportFailed(ctx, res.message);

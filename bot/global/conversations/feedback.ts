@@ -11,7 +11,7 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
         reply_markup: new Keyboard()
             .text("Проблема").row()
             .text("Предложение").row()
-            .text("Отменить").row()
+            .text("Отменить").resized()
     })
 
     const ctx1 = await conversation.waitForHears(["Проблема", "Предложение", "Отменить"], {
@@ -30,9 +30,9 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
 
     await ctx.reply(type == "Проблема"
             ?"Опишите вашу проблему ответным сообщением:"
-            :"Отправьте ваше предложение ответным сообщение:", {
+            :"Отправьте ваше предложение ответным сообщением:", {
             reply_markup: new Keyboard()
-                .text("Отменить").row()
+                .text("Отменить").resized()
         }
     )
 
@@ -51,7 +51,7 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
     await ctx.reply("Вы можете добавить вложение к вашему обращению, для этого отправьте его ответным сообщением", {
         reply_markup: new Keyboard()
             .text("Продолжить без вложения").row()
-            .text("Отменить").row()
+            .text("Отменить").resized()
     })
 
     const ctx3 = await conversation.waitFor("message:file"
@@ -76,7 +76,7 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
                 await c.reply("Для добавления вложения, отправьте его ответным сообщением или создайте обращение без добавления файла, нажав на соответствующую кнопку", {
                     reply_markup: new Keyboard()
                         .text("Продолжить без вложения").row()
-                        .text("Отменить").row()
+                        .text("Отменить").resized()
                 })
             }
         })

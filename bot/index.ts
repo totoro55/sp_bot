@@ -1,5 +1,5 @@
 import "dotenv/config";
-import {Bot, GrammyError, HttpError, InputFile, session} from "grammy";
+import {Bot, GrammyError, HttpError, InlineKeyboard, InputFile, session} from "grammy";
 import getUser from "./global/handlers/getUser";
 import {startKeyboard} from "./global/keyboards/start";
 import addCallbacks from "./callbacks";
@@ -21,7 +21,10 @@ import {
 } from "../config/filesConfig";
 import {showCurrentReportFiles} from "./marketing/helpers/showCurrentReportFiles";
 import {resetMarketingSession} from "./marketing/helpers/reportSession";
-import {addFilesKeyboard} from "./marketing/keyboards/report";
+import {acceptedFileText, reportPlace} from "./marketing/helpers/reportContext";
+import {reportPhotoUrls} from "./marketing/helpers/reportPhotoUrls";
+import {createFileId} from "./marketing/helpers/fileIds";
+import {addFilesKeyboard, filialActionsKeyboard} from "./marketing/keyboards/report";
 
 assertRuntimeEnv();
 
@@ -56,8 +59,11 @@ bot.use(hydrate())
 bot.use(conversations({
     async onExit(id, ctx) {
         if (id === "report" && ctx.session.marketing_report) {
-            await showCurrentReportFiles(ctx as MyContext);
-            await ctx.reply(ADD_REPORT_FILES_PROMPT, {
+            const reportCtx = ctx as MyContext;
+            const place = reportPlace(reportCtx);
+            if (place) await reportCtx.reply(place);
+            await showCurrentReportFiles(reportCtx);
+            await reportCtx.reply(ADD_REPORT_FILES_PROMPT, {
                 reply_markup: addFilesKeyboard("Завершить добавление файлов"),
             });
         }
@@ -70,7 +76,12 @@ addCallbacks(bot)
 addHears(bot)
 
 bot.on(":file", async (ctx) => {
-    if (!ctx.session.marketing_report) return
+    if (!ctx.session.marketing_report) {
+        await ctx.reply("Сейчас отчет не заполняется. Выберите конструкцию и начните отчет, затем отправьте фото как файл.", {
+            reply_markup: ctx.session.selected_filial ? filialActionsKeyboard : startKeyboard,
+        })
+        return
+    }
     if (!ctx.message) return
 
     if (ctx.message?.photo) {
@@ -103,19 +114,30 @@ bot.on(":file", async (ctx) => {
     const regex2 = /\.(heic|heiv)$/i
     if (regex2.test(file.file_path || "")) {
         await ctx.replyWithPhoto(new InputFile("files/instruction.png"), {
-            caption: "Вы отправили файл, формат которого не поддерживается ботом (HEIC/HEIV). Для изменения формата на IPhone необходимо открыть настройки телефона и изменить формат сохраняемых фотографий на 'Наиболее совместимый', как указано на скриншоте.",
+            caption: "Вы отправили файл, формат которого не поддерживается ботом (HEIC/HEIV). Для изменения формата на iPhone необходимо открыть настройки телефона и изменить формат сохраняемых фотографий на 'Наиболее совместимый', как указано на скриншоте.",
             reply_parameters: {message_id: ctx.msg.message_id}
         })
         return
     } else {
         const fileUrl = file.getUrl()
-        await ctx.react("👍")
+        const fileId = createFileId()
+        const report = ctx.session.marketing_report
         ctx.session.marketing_report = {
-            ...ctx.session.marketing_report,
+            ...report,
+            newFiles: [...(report.newFiles ?? []), {fileId, fileUrl}],
             reportData: {
-                ...ctx.session.marketing_report.reportData,
-                photos: [...ctx.session.marketing_report.reportData.photos, fileUrl]
-            }
+                ...report.reportData,
+                photos: [...report.reportData.photos, fileUrl],
+            },
+        }
+        await ctx.reply(acceptedFileText(reportPhotoUrls(ctx).length), {
+            reply_parameters: {message_id: ctx.msg.message_id},
+            reply_markup: new InlineKeyboard().text("Удалить этот файл", `delete_file_${fileId}`),
+        })
+        try {
+            await ctx.react("👍")
+        } catch (error) {
+            console.log(error)
         }
         return
     }

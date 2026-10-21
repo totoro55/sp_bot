@@ -6,18 +6,12 @@ import getAdvertisingStructuresById from "../handlers/getAdvertisingStructureByI
 import getReport from "../handlers/getReport";
 import {resizePhoto} from "../helpers/resizePhoto";
 import {clearMarketingReport} from "../helpers/reportSession";
+import {structureCaptionTitle, structureContextName} from "../helpers/structureLabel";
 import {changeStructureOrPeriodKeyboard, structureReportKeyboard} from "../keyboards/report";
 
 type ReportRow = {[key: string]: string};
 
 const supportHint = "обратитесь к ответственным сотрудникам - Admins.Southproject@dns-shop.ru";
-
-const structureTitle = (advStructure: {[key: string]: string}): string => {
-    if (advStructure["3710"] == "Другое (наименование РК указано в карточке)") {
-        return `Рекламная конструкция Другое:\n${advStructure["3714"] || ""}`;
-    }
-    return `Рекламная конструкция ${advStructure["3710"]}`;
-};
 
 const existingReportText = (report: ReportRow): string => {
     return `\n\nПо рекламной конструкции уже создан отчет за указанный период:
@@ -50,7 +44,7 @@ const selectAdvStructure = async (ctx: MyContext) => {
 
     const advStructure = advStructures[0];
     const report = reportRows.length > 0 ? reportRows[0] as ReportRow : null;
-    const title = structureTitle(advStructure);
+    const title = structureCaptionTitle(advStructure);
     const periodName = ctx.session.marketing_report_period?.name;
 
     if (report && report["3727"] == "Проверен") {
@@ -68,6 +62,7 @@ const selectAdvStructure = async (ctx: MyContext) => {
     ctx.session.marketing_report = {
         advStructureId: advStructure["id"],
         advStructureType: advStructure["3710"],
+        advStructureTitle: structureContextName(advStructure),
         reportId: report ? report["id"] : null,
         reportData: {status: "", comment: "", photos: []},
     };

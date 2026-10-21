@@ -1,22 +1,21 @@
 import {MyContext, MyConversation} from "../../../types/global/myContext";
 import {MarketingReport} from "../../../types/marketing/MarketingReport";
 import {Keyboard} from "grammy";
-import {backKeyboard} from "../../global/keyboards/back";
 import {messageFromAdvStructureType} from "../helpers/messageFromAdvStructureType";
 import {clearMarketingReport} from "../helpers/reportSession";
+import {filialActionsKeyboard} from "../keyboards/report";
 
-const cancelKeyboard = new Keyboard().text("Отменить").row();
+const cancelKeyboard = new Keyboard().text("Отменить").resized();
 const statusKeyboard = new Keyboard()
     .text("Все ок").row()
     .text("Есть дефекты").row()
-    .text("Отменить").row();
-const addPhotoKeyboard = new Keyboard()
-    .text("Добавить фото/видео").row()
-    .text("Отменить").row();
+    .text("Отменить").resized();
 
-export default async function report(conversation: MyConversation, ctx: MyContext, report: MarketingReport) {
+export default async function report(conversation: MyConversation, ctx: MyContext, reportDraft: MarketingReport) {
     const cancelReport = async () => {
-        await ctx.reply("Создание отчета отменено", {reply_markup: backKeyboard});
+        await ctx.reply("Создание отчета отменено. Выберите интересующий вас пункт меню", {
+            reply_markup: filialActionsKeyboard,
+        });
         await conversation.external((outside) => {
             clearMarketingReport(outside);
         });
@@ -36,7 +35,7 @@ export default async function report(conversation: MyConversation, ctx: MyContex
     }
 
     const status = statusCtx.message?.text!;
-    await ctx.reply(messageFromAdvStructureType(status, report.advStructureType), {reply_markup: cancelKeyboard});
+    await ctx.reply(messageFromAdvStructureType(status, reportDraft.advStructureType), {reply_markup: cancelKeyboard});
 
     const commentCtx = await conversation.waitFor(":text", {
         async otherwise(wrong) {
@@ -50,23 +49,11 @@ export default async function report(conversation: MyConversation, ctx: MyContex
     }
 
     const comment = commentCtx.message?.text!;
-    const draft: MarketingReport = {...report, reportData: {status, comment, photos: []}};
     await conversation.external((outside) => {
-        outside.session.marketing_report = draft;
+        outside.session.marketing_report = {
+            ...reportDraft,
+            reportData: {status, comment, photos: []},
+        };
     });
-
-    await ctx.reply("Необходимо добавить фото/видео", {reply_markup: addPhotoKeyboard});
-
-    const photoCtx = await conversation.waitForHears(["Добавить фото/видео", "Отменить"], {
-        async otherwise(wrong) {
-            await wrong.reply("Пожалуйста, выберите необходимый пункт меню");
-        },
-    });
-
-    if (photoCtx.message?.text == "Отменить") {
-        await cancelReport();
-        return;
-    }
-
     await conversation.halt();
 }

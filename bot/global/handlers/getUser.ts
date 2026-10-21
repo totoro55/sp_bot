@@ -3,6 +3,7 @@ import {InlineKeyboard} from "grammy";
 import {createCrm} from "../../../api/crm";
 import {MyContext} from "../../../types/global/myContext";
 import {USER_AUTH_EXPIRES_IN} from "../../../config/crmConfig";
+import {readableError} from "../helpers/readableError";
 
 export default async function getUser(ctx: MyContext): Promise<TUser | null> {
 
@@ -30,7 +31,7 @@ export default async function getUser(ctx: MyContext): Promise<TUser | null> {
         ctx.session.auth_expires_in = Date.now() + USER_AUTH_EXPIRES_IN
         return user
     } catch (e) {
-        await ctx.reply(`Возникла ошибка: ${JSON.stringify(e)}`)
+        await ctx.reply(`Не удалось проверить регистрацию. ${readableError(e)}`)
         return null
     }
 

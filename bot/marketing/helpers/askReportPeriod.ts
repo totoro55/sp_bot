@@ -4,6 +4,7 @@ import getUser from "../../global/handlers/getUser";
 import {TUser} from "../../../types/global/TUser";
 import {TFilial} from "../../../types/global/TFilial";
 import getActiveReportPeriods from "../handlers/getActiveReportPeriods";
+import {replyInlineChoice} from "./replyInlineChoice";
 import {backToMenuKeyboard, chooseFilialKeyboard} from "../keyboards/report";
 
 const FILIAL_REQUIRED = "Не выбран филиал. Для заполнения отчета о рекламных конструкциях необходимо выбрать филиал.";
@@ -35,7 +36,7 @@ const askReportPeriod = async (ctx: MyContext, emptyMessage: string): Promise<vo
 
     const keyboard = new InlineKeyboard();
     reportPeriods.forEach((period) => keyboard.text(period.name, `marketing_report_period_${period.id}`).row());
-    await ctx.reply("Выберите период отчета", {reply_markup: keyboard});
+    await replyInlineChoice(ctx, "Выберите период отчета", keyboard);
 };
 
 export {askReportPeriod, requireFilial};

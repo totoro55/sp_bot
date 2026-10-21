@@ -3,6 +3,7 @@ import {MyContext} from "../../../types/global/myContext";
 import getReportCurrentPhotosByReportId from "../handlers/getReportCurrentPhotosByReportId";
 import {createFileId} from "./fileIds";
 import {getFilesFromZip} from "./getPhotosFromZip";
+import {readableError} from "../../global/helpers/readableError";
 
 const showCurrentReportFiles = async (ctx: MyContext): Promise<void> => {
     const reportId = ctx.session.marketing_report?.reportId;
@@ -37,8 +38,7 @@ const showCurrentReportFiles = async (ctx: MyContext): Promise<void> => {
 
         await ctx.reply("Загружены файлы. Вы можете удалить файл нажав на соответствующую кнопку расположенную под ним.");
     } catch (error) {
-        const message = error instanceof Error ? error.message : JSON.stringify(error);
-        await ctx.reply(`Не удалось загрузить список имеющихся файлов ошибка ${message}`);
+        await ctx.reply(`Не удалось загрузить список имеющихся файлов. ${readableError(error)}`);
     }
 };
 

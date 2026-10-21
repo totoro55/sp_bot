@@ -2,6 +2,7 @@ import {StatelessQuestion} from "@grammyjs/stateless-question";
 import {InlineKeyboard} from "grammy";
 import {MyContext} from "../../../types/global/myContext";
 import confirmAuthCode from "../handlers/confirmAuthCode";
+import {readableError} from "../helpers/readableError";
 
 const confirmCodeQuestion = new StatelessQuestion("confirm_code", async (ctx:MyContext) => {
     if (ctx.message?.text) {
@@ -25,7 +26,7 @@ const confirmCodeQuestion = new StatelessQuestion("confirm_code", async (ctx:MyC
             return
 
         } catch (error) {
-            await ctx.reply(JSON.stringify(error))
+            await ctx.reply(`Не удалось проверить код. ${readableError(error)}`)
             return
         }
 
