@@ -1,6 +1,5 @@
 import https from "https";
-import {HttpsProxyAgent} from "https-proxy-agent";
-import {telegramProxyUrl} from "../../../config/env";
+import {telegramAgent} from "../../runtime/telegramAgent";
 import {MyApi} from "../../../types/global/myContext";
 
 const DOWNLOAD_TIMEOUT_MS = 180_000;
@@ -22,8 +21,6 @@ const downloadTelegramFile = async (api: MyApi, telegramFileId: string, maxBytes
         throw new Error(`Файл больше ${limitText()}`);
     }
     const url = remote.getUrl();
-    const proxy = telegramProxyUrl();
-    const agent = proxy ? new HttpsProxyAgent(proxy) : undefined;
 
     return new Promise<Buffer>((resolve, reject) => {
         let settled = false;
@@ -37,7 +34,7 @@ const downloadTelegramFile = async (api: MyApi, telegramFileId: string, maxBytes
             settled = true;
             resolve(buffer);
         };
-        const request = https.get(url, {agent}, (response) => {
+        const request = https.get(url, {agent: telegramAgent}, (response) => {
             if (!response.statusCode || response.statusCode >= 400) {
                 response.resume();
                 fail(new Error("Не удалось скачать файл из Telegram"));

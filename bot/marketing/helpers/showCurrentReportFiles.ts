@@ -14,8 +14,10 @@ const showCurrentReportFiles = async (ctx: MyContext): Promise<void> => {
     ctx.session.reportFilesSynced = false;
     try {
         await ctx.reply("Пожалуйста подождите, загружается список ранее добавленных файлов");
-        const archive = await getReportCurrentPhotosByReportId(Number(reportId));
-        const files = await getFilesFromZip(archive);
+        const files = await (async () => {
+            const archive = await getReportCurrentPhotosByReportId(Number(reportId));
+            return getFilesFromZip(archive);
+        })();
 
         if (!files) {
             ctx.session.marketing_report_curren_files = [];
@@ -45,7 +47,9 @@ const showCurrentReportFiles = async (ctx: MyContext): Promise<void> => {
         for (const [index, file] of files.entries()) {
             const fileId = createFileId();
             const shownName = attachmentDisplayName(storageNames[index] || file.filename || "file");
-            const msg = await ctx.replyWithDocument(new InputFile(file.content, shownName), {
+            const content = file.content;
+            file.content = Buffer.alloc(0);
+            const msg = await ctx.replyWithDocument(new InputFile(content, shownName), {
                 caption: shownName,
                 reply_markup: new InlineKeyboard().text("Удалить файл", `delete_file_${fileId}`),
             });

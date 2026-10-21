@@ -1,5 +1,12 @@
 FROM node:22-bookworm-slim
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libjemalloc2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && jemalloc="$(find /usr/lib -name 'libjemalloc.so.2' | head -n 1)" \
+    && test -n "$jemalloc" \
+    && ln -sf "$jemalloc" /usr/local/lib/libjemalloc.so.2
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -20,4 +27,6 @@ RUN npm run build \
 COPY files ./files
 
 ENV NODE_ENV=production
+ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so.2
+ENV MALLOC_CONF=background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000
 CMD ["node", "dist/index.js"]

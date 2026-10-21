@@ -3,9 +3,8 @@ import {Bot, session} from "grammy";
 import {hydrate} from "@grammyjs/hydrate";
 import {conversations, createConversation} from "@grammyjs/conversations";
 import {hydrateFiles} from "@grammyjs/files";
-import {HttpsProxyAgent} from "https-proxy-agent";
 import {MyApi, MyContext} from "../types/global/myContext";
-import {assertRuntimeEnv, telegramProxyUrl} from "../config/env";
+import {assertRuntimeEnv} from "../config/env";
 import addCallbacks from "./callbacks";
 import addMiddlewares from "./middlewares";
 import addHears from "./hears";
@@ -18,16 +17,18 @@ import {chatLock} from "./runtime/chatLock";
 import {sessionStorage} from "./runtime/sessionStorage";
 import {initialSession} from "./runtime/initialSession";
 import {logBotError} from "./runtime/logBotError";
+import {limitImageMemory} from "./runtime/limitImageMemory";
+import {proxyUrl, telegramAgent} from "./runtime/telegramAgent";
 import {uploadGuard} from "./uploadGuard";
 import {startCommand} from "./commands/start";
 
+limitImageMemory();
 assertRuntimeEnv();
 
-const proxyUrl = telegramProxyUrl();
 const bot = new Bot<MyContext, MyApi>(process.env.BOT_TOKEN!, proxyUrl ? {
     client: {
         baseFetchConfig: {
-            agent: new HttpsProxyAgent(proxyUrl),
+            agent: telegramAgent,
             compress: true,
         },
     },

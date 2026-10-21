@@ -1,11 +1,13 @@
-import decode from "heic-decode";
-import sharp from "sharp";
-import {MAX_PHOTO_FILE_BYTES} from "../../../config/filesConfig";
+import fs from "fs";
+import path from "path";
+import {Worker} from "worker_threads";
 
 const IMAGE_BRANDS = new Set(["heic", "heix", "heim", "heis", "heif", "mif1", "msf1"]);
-const MAX_INPUT_PIXELS = 80_000_000;
+const CONVERT_TIMEOUT_MS = 120_000;
 
-type DecodedHeif = {width: number; height: number; data: Uint8ClampedArray};
+type WorkerSuccess = {ok: true; jpeg: Buffer | Uint8Array};
+type WorkerFailure = {ok: false; error?: string};
+type WorkerMessage = WorkerSuccess | WorkerFailure;
 
 const isHeic = (content: Buffer): boolean => {
     if (content.length < 12) return false;
@@ -20,73 +22,52 @@ const jpegFileName = (fileName: string): string => {
     return `${base || "photo"}.jpg`;
 };
 
-const conversionError = (error: unknown): Error => {
-    const message = error instanceof Error ? error.message : "";
-    if (/pixel limit|exceeds pixel/i.test(message)) {
-        return new Error("Снимок слишком большой для преобразования в JPG");
-    }
-    return new Error("Не удалось преобразовать фото HEIF в JPG");
+const resolveHeicWorker = (): {filename: string; execArgv?: string[]} => {
+    const compiled = path.join(__dirname, "heicWorker.js");
+    if (fs.existsSync(compiled)) return {filename: compiled};
+    return {
+        filename: path.join(__dirname, "heicWorker.ts"),
+        execArgv: ["-r", "ts-node/register/transpile-only"],
+    };
 };
 
-const opaquePixels = (data: Uint8ClampedArray): Buffer => {
-    const pixels = Buffer.from(data);
-    for (let index = 3; index < pixels.length; index += 4) {
-        pixels[index] = 255;
-    }
-    return pixels;
-};
-
-const encodeJpeg = async (image: DecodedHeif): Promise<Buffer> => {
-    if (image.width * image.height > MAX_INPUT_PIXELS) {
-        throw new Error("Снимок слишком большой для преобразования в JPG");
-    }
-    const pixels = opaquePixels(image.data);
-    let quality = 85;
-    let width = image.width;
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-        try {
-            let pipeline = sharp(pixels, {
-                raw: {width: image.width, height: image.height, channels: 4},
-                limitInputPixels: MAX_INPUT_PIXELS,
+const convertHeic = (content: Buffer): Promise<Buffer> => {
+    const workerFile = resolveHeicWorker();
+    const worker = new Worker(workerFile.filename, workerFile.execArgv ? {execArgv: workerFile.execArgv} : {});
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = (error: Error | null, jpeg?: Buffer) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            worker.terminate().catch(() => undefined).finally(() => {
+                if (error) reject(error);
+                else resolve(jpeg as Buffer);
             });
-            if (width < image.width) {
-                pipeline = pipeline.resize({width, withoutEnlargement: true});
+        };
+        const timer = setTimeout(() => {
+            finish(new Error("Не удалось преобразовать фото HEIF в JPG"));
+        }, CONVERT_TIMEOUT_MS);
+        worker.once("message", (message: WorkerMessage) => {
+            if (message?.ok && message.jpeg) {
+                const jpeg = Buffer.isBuffer(message.jpeg) ? message.jpeg : Buffer.from(message.jpeg);
+                finish(null, jpeg);
+                return;
             }
-            const jpeg = await pipeline.jpeg({quality}).toBuffer();
-            if (jpeg.length <= MAX_PHOTO_FILE_BYTES) return jpeg;
-        } catch (error) {
-            throw conversionError(error);
-        }
-        if (quality > 55) {
-            quality -= 15;
-        } else if (width > 1600) {
-            width = Math.round(width * 0.75);
-        } else {
-            break;
-        }
-    }
-    throw new Error("После преобразования в JPG файл больше 20 МБ");
-};
-
-const decodeLargest = async (content: Buffer): Promise<DecodedHeif> => {
-    const images = await decode.all({buffer: content});
-    try {
-        const best = images.reduce((current, image) => {
-            return image.width * image.height > current.width * current.height ? image : current;
+            finish(new Error(message && !message.ok && message.error
+                ? message.error
+                : "Не удалось преобразовать фото HEIF в JPG"));
         });
-        return await best.decode();
-    } finally {
-        images.dispose();
-    }
-};
-
-const heicToJpeg = async (content: Buffer): Promise<Buffer> => {
-    try {
-        return await encodeJpeg(await decodeLargest(content));
-    } catch (error) {
-        if (error instanceof Error && /JPG/.test(error.message)) throw error;
-        throw conversionError(error);
-    }
+        worker.once("error", () => finish(new Error("Не удалось преобразовать фото HEIF в JPG")));
+        worker.once("exit", () => {
+            if (!settled) finish(new Error("Не удалось преобразовать фото HEIF в JPG"));
+        });
+        try {
+            worker.postMessage(content);
+        } catch {
+            finish(new Error("Не удалось преобразовать фото HEIF в JPG"));
+        }
+    });
 };
 
 const prepareCrmFile = async (
@@ -97,7 +78,7 @@ const prepareCrmFile = async (
     if (!force && !isHeic(content) && !/\.hei[cf]$/i.test(fileName)) {
         return {content, fileName};
     }
-    const jpeg = await heicToJpeg(content);
+    const jpeg = await convertHeic(content);
     return {content: jpeg, fileName: jpegFileName(fileName)};
 };
 
