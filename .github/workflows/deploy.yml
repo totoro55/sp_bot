@@ -23,8 +23,11 @@ jobs:
       - name: Check env file
         shell: powershell
         run: |
-          if (-not (Test-Path 'C:\sp_bot\.env')) {
-            Write-Host 'Создайте C:\sp_bot\.env по образцу .env.example'
+          Write-Host "User: $env:USERNAME"
+          $envFile = 'C:\sp_bot\.env'
+          Write-Host "Env file exists: $(Test-Path -LiteralPath $envFile)"
+          if (-not (Test-Path -LiteralPath $envFile)) {
+            Write-Host "Missing $envFile"
             exit 1
           }
 
