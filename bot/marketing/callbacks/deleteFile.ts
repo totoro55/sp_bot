@@ -7,7 +7,7 @@ const deleteFile = async (ctx:MyContext) => {
     const match = ctx.callbackQuery?.data?.match(/delete_file_(\d+)/);
     const id = match ? match[1] : null;
     if (!id) {
-        await ctx.reply("Рекламная конструкция не найдена.", {reply_markup: backKeyboard})
+        await ctx.reply("Файл не найден.", {reply_markup: backKeyboard})
         return
     }
     const files= [...ctx.session.marketing_report_curren_files].filter(f=> f.fileId !== id )

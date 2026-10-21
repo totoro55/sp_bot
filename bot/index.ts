@@ -1,5 +1,5 @@
 import "dotenv/config";
-import {Bot, GrammyError, HttpError, InlineKeyboard, InputFile, Keyboard, session} from "grammy";
+import {Bot, GrammyError, HttpError, InputFile, session} from "grammy";
 import getUser from "./global/handlers/getUser";
 import {startKeyboard} from "./global/keyboards/start";
 import addCallbacks from "./callbacks";
@@ -11,10 +11,17 @@ import {hydrateFiles} from "@grammyjs/files";
 import feedback from "./global/conversations/feedback";
 import addHears from "./hears";
 import report from "./marketing/conversations/report";
-import getReportCurrentPhotosByReportId from "./marketing/handlers/getReportCurrentPhotosByReportId";
-import {getFilesFromZip} from "./marketing/helpers/getPhotosFromZip";
 import {HttpsProxyAgent} from "https-proxy-agent";
 import {assertRuntimeEnv, telegramProxyUrl} from "../config/env";
+import {
+    ADD_REPORT_FILES_PROMPT,
+    MAX_REPORT_FILE_BYTES,
+    MIN_REPORT_FILE_BYTES,
+    SEND_FILE_HINT,
+} from "../config/filesConfig";
+import {showCurrentReportFiles} from "./marketing/helpers/showCurrentReportFiles";
+import {resetMarketingSession} from "./marketing/helpers/reportSession";
+import {addFilesKeyboard} from "./marketing/keyboards/report";
 
 assertRuntimeEnv();
 
@@ -48,39 +55,11 @@ bot.api.config.use(hydrateFiles(process.env.BOT_TOKEN!));
 bot.use(hydrate())
 bot.use(conversations({
     async onExit(id, ctx) {
-        if (id === "report") {
-
-            if (ctx.session.marketing_report && ctx.session.marketing_report.reportId) {
-                try {
-                    await ctx.reply("Пожалуйста подождите, загружается список ранее добавленных файлов")
-                    const filesBase64 = await getReportCurrentPhotosByReportId(Number(ctx.session.marketing_report.reportId))
-                    const files = await getFilesFromZip(filesBase64)
-
-                    if (files && files.length > 0) {
-                        for (const file of files) {
-                            const fileId = Date.now().toString()
-                            const msg = await ctx.replyWithDocument(new InputFile(file.content, file.filename), {
-                                caption: file.filename,
-                                reply_markup: new InlineKeyboard().text("Удалить файл", "delete_file_"+fileId)
-                            })
-                            const fileUrl = await bot.api.getFile(msg.document.file_id).then(res => res.getUrl())
-                            ctx.session.marketing_report_curren_files = [...ctx.session.marketing_report_curren_files, {fileId: fileId, fileUrl: fileUrl}]
-                        }
-                    } else {
-                        await ctx.reply("Не удалось загрузить файлы или файлы к указанному отчету отсутствуют.")
-                    }
-                    await ctx.reply("Загружены файлы. Вы можете удалить файл нажав на соответствующую кнопку расположенную под ним.")
-                } catch (e) {
-                    await ctx.reply(`Не удалось загрузить список имеющихся файлов ошибка ${JSON.stringify(e)}`)
-                }
-            }
-
-            await ctx.reply("Добавьте фото/видео, отображающие состояние конструкции.\nМинимальный размер файла - 1Мб\nМаксимальный размер файла - 20Мб.\n\n" +
-                "Для корректной отправки необходимо отправлять фото без сжатия, как файлы. Видео можно отправлять со сжатием.", {
-                reply_markup: new Keyboard()
-                    .text("Завершить добавление файлов").row()
-                    .text("Отменить создание отчета").row()
-            })
+        if (id === "report" && ctx.session.marketing_report) {
+            await showCurrentReportFiles(ctx as MyContext);
+            await ctx.reply(ADD_REPORT_FILES_PROMPT, {
+                reply_markup: addFilesKeyboard("Завершить добавление файлов"),
+            });
         }
     }
 }))
@@ -95,42 +74,32 @@ bot.on(":file", async (ctx) => {
     if (!ctx.message) return
 
     if (ctx.message?.photo) {
-        await ctx.reply(`Файл отправлен неправильно. Фото должны быть отправлены как файл, без сжатия.
-Видео можно отправить со сжатием.\n\nПосле загрузки всех файлов нажмите "Завершить добавление файлов"`)
+        await ctx.reply(`Файл отправлен неправильно. ${SEND_FILE_HINT}`)
         return
     }
-    const regex = /video|image/i;
+    const mediaType = /video|image/i;
+    const fileName = ctx.message.document?.file_name || ctx.message.video?.file_name;
+    const mimeType = ctx.message.document?.mime_type || ctx.message.video?.mime_type;
 
-    if (ctx.message.document) {
-        if (!regex.test(ctx.message.document.mime_type || "")) {
-            await ctx.reply(`Файл ${ctx.message.document.file_name} не принят, так как не является изображением или видео.\nФото должны быть отправлены как файл, без сжатия.
-Видео можно отправить со сжатием.\n\nПосле загрузки всех файлов нажмите "Завершить добавление файлов".`)
-            return
-        }
-    }
-
-    if (ctx.message.video) {
-        if (!regex.test(ctx.message.video.mime_type || "")) {
-            await ctx.reply(`Файл ${ctx.message.video.file_name} не принят, так как не является изображением или видео.\nФото должны быть отправлены как файл, без сжатия.\nВидео можно отправить со сжатием.\n\nПосле загрузки всех файлов нажмите "Завершить добавление файлов".`)
-            return
-        }
+    if ((ctx.message.document || ctx.message.video) && !mediaType.test(mimeType || "")) {
+        await ctx.reply(`Файл ${fileName} не принят, так как не является изображением или видео.\n${SEND_FILE_HINT}`)
+        return
     }
 
     const file = await ctx.getFile()
-    if (file.file_size && file.file_size * 0.000001 < 1) {
-        await ctx.reply("Размер файла не должен быть меньше 1MB.\n\nПосле загрузки всех файлов нажмите 'Завершить добавление файлов'.", {
+    if (file.file_size && file.file_size < MIN_REPORT_FILE_BYTES) {
+        await ctx.reply(`Размер файла не должен быть меньше 1 МБ.\n\n${SEND_FILE_HINT}`, {
             reply_parameters: {message_id: ctx.msg.message_id}
         })
         return
     }
-    if (file.file_size && file.file_size * 0.000001 > 20) {
-        await ctx.reply("Размер файла не должен превышать 20MB. Если вы отправляете видео - можете отправить его со сжатием или отредактировать перед отправкой.\n\nПосле загрузки всех файлов нажмите 'Завершить добавление файлов'.", {
+    if (file.file_size && file.file_size > MAX_REPORT_FILE_BYTES) {
+        await ctx.reply(`Размер файла не должен превышать 20 МБ. Если вы отправляете видео - можете отправить его со сжатием или отредактировать перед отправкой.\n\n${SEND_FILE_HINT}`, {
             reply_parameters: {message_id: ctx.msg.message_id}
         })
         return
     }
 
-    const fileUrl = await bot.api.getFile(file.file_id).then(res => res.getUrl())
     const regex2 = /\.(heic|heiv)$/i
     if (regex2.test(file.file_path || "")) {
         await ctx.replyWithPhoto(new InputFile("files/instruction.png"), {
@@ -139,6 +108,7 @@ bot.on(":file", async (ctx) => {
         })
         return
     } else {
+        const fileUrl = file.getUrl()
         await ctx.react("👍")
         ctx.session.marketing_report = {
             ...ctx.session.marketing_report,
@@ -169,10 +139,7 @@ bot.catch(err => {
 bot.command("start", async (ctx: MyContext) => {
     const user = await getUser(ctx)
     if (!user) return
-    ctx.session.marketing_report_period = null
-    ctx.session.marketing_report_files = []
-    ctx.session.marketing_report = null
-    ctx.session.marketing_report_curren_files = []
+    resetMarketingSession(ctx)
     await ctx.reply(`Добро пожаловать, ${user.name}! Выберите интересующий вас пункт меню`, {reply_markup: startKeyboard})
 });
 

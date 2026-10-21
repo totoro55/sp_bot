@@ -1,7 +1,7 @@
 import {MyContext} from "../../../types/global/myContext";
 import {backKeyboard} from "../../global/keyboards/back";
 import getActiveReportPeriods from "../handlers/getActiveReportPeriods";
-import {Keyboard} from "grammy";
+import {changeStructureOrPeriodKeyboard} from "../keyboards/report";
 
 const selectMarketingReportPeriod = async (ctx:MyContext) => {
     await ctx.answerCallbackQuery()
@@ -26,10 +26,7 @@ const selectMarketingReportPeriod = async (ctx:MyContext) => {
 
     ctx.session.marketing_report_period = reportPeriod
     await ctx.reply(`Выбран период ${reportPeriod.name}. Вы можете перейти к выбору РК или изменить период:`, {
-        reply_markup: new Keyboard()
-            .text("Выбрать рекламную конструкцию").row()
-            .text("Выбрать другой период").row()
-            .text("Назад в меню").row()
+        reply_markup: changeStructureOrPeriodKeyboard,
     })
 }
 

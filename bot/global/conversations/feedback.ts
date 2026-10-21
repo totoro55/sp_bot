@@ -2,7 +2,6 @@ import {MyContext, MyConversation} from "../../../types/global/myContext";
 import {Keyboard} from "grammy";
 import {backKeyboard} from "../keyboards/back";
 import {sendFeedback} from "../handlers";
-import bot from "../../index";
 import {TUser} from "../../../types/global/TUser";
 
 export default async function feedback(conversation: MyConversation, ctx: MyContext, user: TUser ) {
@@ -83,7 +82,7 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
         })
 
     const file = await ctx3.getFile()
-    const fileUrl = await bot.api.getFile(file.file_id).then(res=>res.getUrl())
+    const fileUrl = file.getUrl()
     const res = await sendFeedback(
         type === "Проблема" ? "problem" : "offer",
         userId,
