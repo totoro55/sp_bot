@@ -1,14 +1,10 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 import {TUser} from "../../../types/global/TUser";
 
 const addFilesToReport = async (
     report: {reportId:string, photos: Array<string | {[p:string]: string}>}, user: TUser
 ) => {
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const payload = {
         entity_id: 213,

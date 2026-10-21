@@ -138,3 +138,13 @@ export class Crm {
     }
 
 }
+
+export function createCrm(): Crm {
+    const key = process.env.CRM_API_KEY?.trim();
+    const password = process.env.CRM_PASSWORD?.trim();
+    const username = process.env.CRM_USER?.trim();
+    if (!key || !password || !username) {
+        throw new Error("Не заданы CRM_API_KEY, CRM_PASSWORD или CRM_USER");
+    }
+    return new Crm(key, password, username);
+}

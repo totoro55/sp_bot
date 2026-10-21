@@ -1,12 +1,8 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 import {MyContext} from "../../../types/global/myContext";
 
 export default async function register(ctx: MyContext, login:string):Promise<string> {
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const expiresIn = (ctx.message?.date || 0)*1000
     const chatId = ctx.chatId

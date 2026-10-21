@@ -1,6 +1,6 @@
 import {TUser} from "../../../types/global/TUser";
 import {InlineKeyboard} from "grammy";
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 import {MyContext} from "../../../types/global/myContext";
 import {USER_AUTH_EXPIRES_IN} from "../../../config/crmConfig";
 
@@ -12,11 +12,7 @@ export default async function getUser(ctx: MyContext): Promise<TUser | null> {
         return ctx.session.user;
     }
 
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     if (!ctx.chatId) return null
 

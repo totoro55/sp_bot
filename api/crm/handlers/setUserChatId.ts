@@ -1,6 +1,7 @@
 import {CrmApiParams} from "../../../types/crm/CrmApiParams";
 import {AuthKeyItem} from "../../../types/global/AuthKeyItem";
 import {UpdateDataParams} from "../../../types/crm/UpdateDataParams";
+import {crmPost} from "../request";
 
 export default async function setUserChatId(authCodeItem:AuthKeyItem, crmConfig:CrmApiParams):Promise<void> {
     const data = {
@@ -17,11 +18,7 @@ export default async function setUserChatId(authCodeItem:AuthKeyItem, crmConfig:
         ...crmConfig
     }
 
-    const res = await fetch(process.env.CRM_URL || "", {
-        method: "POST",
-        body: JSON.stringify(params),
-        keepalive:false
-    })
+    const res = await crmPost(params);
 
     if (res.status !== 200) throw new Error("Ошибка сервера")
 

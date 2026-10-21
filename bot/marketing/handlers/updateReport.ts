@@ -1,15 +1,11 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 import {MarketingReport} from "../../../types/marketing/MarketingReport";
 import {TUser} from "../../../types/global/TUser";
 
 const updateReport = async (
     report: MarketingReport, periodId: string, user: TUser
 ) => {
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const payload = {
         entity_id: 213,

@@ -1,11 +1,7 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 
 export default async function getAdvStructurePhotoById(id: number) {
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const params = {
         entity_id: 212,

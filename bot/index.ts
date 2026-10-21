@@ -1,5 +1,5 @@
+import "dotenv/config";
 import {Bot, GrammyError, HttpError, InlineKeyboard, InputFile, Keyboard, session} from "grammy";
-import 'dotenv/config';
 import getUser from "./global/handlers/getUser";
 import {startKeyboard} from "./global/keyboards/start";
 import addCallbacks from "./callbacks";
@@ -13,23 +13,20 @@ import addHears from "./hears";
 import report from "./marketing/conversations/report";
 import getReportCurrentPhotosByReportId from "./marketing/handlers/getReportCurrentPhotosByReportId";
 import {getFilesFromZip} from "./marketing/helpers/getPhotosFromZip";
-import { HttpsProxyAgent } from "https-proxy-agent";
+import {HttpsProxyAgent} from "https-proxy-agent";
+import {assertRuntimeEnv, telegramProxyUrl} from "../config/env";
 
-require('dotenv').config();
+assertRuntimeEnv();
 
-const agent = new HttpsProxyAgent('http://mow2-it-proxy-haproxy.partner.ru:3128');
-
-// Create a bot object
-const bot = new Bot<MyContext, MyApi>(process.env.BOT_TOKEN!,
-    {
-        client: {
-            baseFetchConfig: {
-                agent: agent,
-                compress: true,
-            }
-        }
-    }
-)
+const proxyUrl = telegramProxyUrl();
+const bot = new Bot<MyContext, MyApi>(process.env.BOT_TOKEN!, proxyUrl ? {
+    client: {
+        baseFetchConfig: {
+            agent: new HttpsProxyAgent(proxyUrl),
+            compress: true,
+        },
+    },
+} : {});
 
 
 

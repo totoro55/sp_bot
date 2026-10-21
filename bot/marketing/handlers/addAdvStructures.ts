@@ -1,14 +1,10 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 
 const addAdvStructures = async (
     data: {[p:string]:string}[] | {[p:string]:string | {[p:string]:string} | {[p:string]:string}[]}
 ) => {
 
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const payload = {
         entity_id: 212,

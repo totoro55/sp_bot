@@ -2,6 +2,7 @@ import {GetDataParams} from "../../../types/crm/GetDataParams";
 import {CrmApiParams} from "../../../types/crm/CrmApiParams";
 import createAuthCodeItemFomData from "../helpers/createAuthCodeItemFomData";
 import {AuthKeyItem} from "../../../types/global/AuthKeyItem";
+import {crmPost} from "../request";
 
 export default async function getUserAuthCode(
     chatId: number,
@@ -21,10 +22,7 @@ export default async function getUserAuthCode(
         }, ...crmConfig
     }
 
-    const res = await fetch(process.env.CRM_URL || "", {
-        method: "POST",
-        body: JSON.stringify(params),
-    })
+    const res = await crmPost(params);
 
     if (res.status !== 200) throw new Error("Ошибка сервера")
 

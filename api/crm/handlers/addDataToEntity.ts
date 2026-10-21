@@ -1,23 +1,7 @@
 import {SendDataParams} from "../../../types/crm/SendDataParams";
+import {crmPostSuccess} from "../request";
 
 export default async function addDataToEntity(params: SendDataParams): Promise<number> {
-    const res = await fetch(process.env.CRM_URL || "", {
-        method: "POST",
-        body: JSON.stringify(params),
-        //keepalive:false
-    })
-    const body = await res.json()
-    if (res.status !== 200) {
-        throw new Error("Ошибка сервера")
-    }
-
-    if (body.status == "success") {
-        return body.data.id
-    }
-
-    if (body.status == "error") {
-        throw new Error(body.error_message)
-    }
-    throw new Error("Ошибка сервера")
-
+    const data = await crmPostSuccess<{id: number}>(params);
+    return data.id;
 }

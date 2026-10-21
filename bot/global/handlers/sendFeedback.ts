@@ -1,4 +1,4 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 
 const sendFeedback = async (
     feedbackType: "problem" | "offer",
@@ -7,11 +7,7 @@ const sendFeedback = async (
     file_url?:string | string[]
     ) => {
 
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const payload = {
         entity_id:219,

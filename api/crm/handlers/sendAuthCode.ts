@@ -2,6 +2,7 @@ import {TUser} from "../../../types/global/TUser";
 import {CrmApiParams} from "../../../types/crm/CrmApiParams";
 import {SendDataParams} from "../../../types/crm/SendDataParams";
 import {EXPIRES_IN} from "../../../config/crmConfig";
+import {crmPost} from "../request";
 
 export default async function sendAuthCode(user: TUser, chatId:number, crmConfig:CrmApiParams):Promise<void> {
     const data = {
@@ -21,11 +22,7 @@ export default async function sendAuthCode(user: TUser, chatId:number, crmConfig
         ...crmConfig
     }
 
-    const res = await fetch(process.env.CRM_URL || "", {
-        method: "POST",
-        body: JSON.stringify(params),
-        keepalive:false
-    })
+    const res = await crmPost(params);
 
     if (res.status !== 200) throw new Error("Ошибка сервера")
 

@@ -1,4 +1,4 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 import {MyContext} from "../../../types/global/myContext";
 
 export default async function confirmAuthCode(ctx: MyContext, code:string):Promise<{
@@ -6,11 +6,7 @@ export default async function confirmAuthCode(ctx: MyContext, code:string):Promi
     message: string
     needNewCode: boolean
 }> {
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const expiresIn = (ctx.message?.date || 0)*1000
     const chatId = ctx.chatId

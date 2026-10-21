@@ -1,13 +1,9 @@
-import {Crm} from "../../../api/crm";
+import {createCrm} from "../../../api/crm";
 import {ReportPeriod} from "../../../types/marketing/ReportPeriod";
 import createReportPeriodFromData from "../helpers/createReportPeriodFromData";
 
 export default async function getActiveReportPeriods(): Promise<ReportPeriod[] | null> {
-    const crm = new Crm(
-        process.env.CRM_API_KEY!,
-        process.env.CRM_PASSWORD!,
-        process.env.CRM_USER!,
-    )
+    const crm = createCrm()
 
     const params = {
         entity_id: 220,

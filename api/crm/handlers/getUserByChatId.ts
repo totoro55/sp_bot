@@ -3,6 +3,7 @@ import {GetDataParams} from "../../../types/crm/GetDataParams";
 import {TUser} from "../../../types/global/TUser";
 import createUserFromData from "../helpers/createUserFromData";
 import checkAccessByGroup from "../helpers/checkAccessByGroup";
+import {crmPost} from "../request";
 
 export default async function getUserByChatId(
     chatId:string, crmConfig:CrmApiParams
@@ -18,10 +19,7 @@ export default async function getUserByChatId(
         }, ...crmConfig
     }
 
-    const res = await fetch(process.env.CRM_URL || "", {
-        method: "POST",
-        body: JSON.stringify(params),
-    })
+    const res = await crmPost(params);
 
     if (res.status !== 200) throw new Error("Ошибка сервера")
     const body = await res.json()

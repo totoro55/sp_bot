@@ -1,0 +1,38 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-sp-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: [self-hosted, sp-bot]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check env file
+        shell: bash
+        run: |
+          if [ ! -f /opt/sp_bot/.env ]; then
+            echo "Создайте /opt/sp_bot/.env по образцу .env.example"
+            exit 1
+          fi
+
+      - name: Build and restart
+        shell: bash
+        env:
+          ENV_FILE: /opt/sp_bot/.env
+        run: |
+          docker compose --env-file "$ENV_FILE" up -d --build --force-recreate --remove-orphans
+          docker image prune -f
+          docker ps --filter name=sp-bot

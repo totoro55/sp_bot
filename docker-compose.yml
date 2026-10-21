@@ -1,0 +1,22 @@
+name: sp-bot
+
+services:
+  bot:
+    build:
+      context: .
+      args:
+        HTTP_PROXY: ${BUILD_HTTP_PROXY:-}
+        HTTPS_PROXY: ${BUILD_HTTPS_PROXY:-}
+        NO_PROXY: ${BUILD_NO_PROXY:-localhost,127.0.0.1,.partner.ru}
+    image: sp-bot:local
+    container_name: sp-bot
+    env_file:
+      - ${ENV_FILE:-.env}
+    network_mode: host
+    restart: unless-stopped
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
