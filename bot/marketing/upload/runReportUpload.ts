@@ -4,7 +4,7 @@ import {createFileId} from "../helpers/fileIds";
 import {addFilesKeyboard, reportActionsKeyboard} from "../keyboards/report";
 import {downloadTelegramFile} from "./downloadTelegramFile";
 import {insertReport, updateReportAttachments, updateReportMeta} from "./crmReport";
-import {editProgress, fileProgressText, sendKeyboard, textWithPlace} from "./progress";
+import {deleteServiceMessage, editProgress, fileProgressText, sendKeyboard, textWithPlace} from "./progress";
 import {patchBusySession} from "./sessionPatch";
 
 type PendingFile = {telegramFileId: string; fileName: string};
@@ -12,6 +12,7 @@ type PendingFile = {telegramFileId: string; fileName: string};
 type ReportUploadJob = {
     chatId: number;
     progressMessageId: number;
+    hiddenMessageId: number;
     place: string;
     userId: string;
     mode: "create" | "update" | "files";
@@ -100,6 +101,7 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
         } catch (error) {
             console.error(error);
         }
+        await deleteServiceMessage(api, job.chatId, job.hiddenMessageId);
         await patchBusySession(job.chatId, (session) => {
             session.outboundBusy = null;
             if (!succeeded) {

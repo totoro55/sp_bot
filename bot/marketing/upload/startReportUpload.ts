@@ -4,7 +4,7 @@ import {reportPlace} from "../helpers/reportContext";
 import {showCurrentReportFiles} from "../helpers/showCurrentReportFiles";
 import {addFilesKeyboard} from "../keyboards/report";
 import {uniqueFileName} from "./fileName";
-import {textWithPlace} from "./progress";
+import {hideReplyKeyboard, textWithPlace} from "./progress";
 import {enqueueUpload} from "./queue";
 
 type FinishMode = "form" | "files";
@@ -39,16 +39,21 @@ const startReportUpload = async (ctx: MyContext, user: TUser, mode: FinishMode):
             ? "Файлы успешно добавлены к отчету."
             : "Отчет успешно обновлен.";
 
-    const progress = await ctx.reply(textWithPlace(place, "Отчет принят. Подготавливаю отправку."), {
-        reply_markup: {remove_keyboard: true},
-    });
+    const progress = await ctx.reply(textWithPlace(place, "Отчет принят. Подготавливаю отправку."));
     ctx.session.outboundBusy = "report";
+    let hiddenMessageId = 0;
+    try {
+        hiddenMessageId = await hideReplyKeyboard(ctx.api, chatId);
+    } catch (error) {
+        console.log(error);
+    }
 
     enqueueUpload({
         kind: "report",
         job: {
             chatId,
             progressMessageId: progress.message_id,
+            hiddenMessageId,
             place,
             userId: user.id,
             mode: uploadMode,

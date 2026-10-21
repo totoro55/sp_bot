@@ -3,12 +3,13 @@ import {MyApi} from "../../../types/global/myContext";
 import {backKeyboard} from "../../global/keyboards/back";
 import sendFeedback from "../../global/handlers/sendFeedback";
 import {downloadTelegramFile} from "./downloadTelegramFile";
-import {editProgress, sendKeyboard} from "./progress";
+import {deleteServiceMessage, editProgress, sendKeyboard} from "./progress";
 import {patchBusySession} from "./sessionPatch";
 
 type FeedbackUploadJob = {
     chatId: number;
     progressMessageId: number;
+    hiddenMessageId: number;
     userId: string;
     feedbackType: "problem" | "offer";
     description: string;
@@ -36,6 +37,7 @@ const runFeedbackUpload = async (api: MyApi, job: FeedbackUploadJob): Promise<vo
         } catch (error) {
             console.error(error);
         }
+        await deleteServiceMessage(api, job.chatId, job.hiddenMessageId);
         await patchBusySession(job.chatId, (session) => {
             session.outboundBusy = null;
         });
