@@ -1,7 +1,7 @@
 import {GetDataParams} from "../../../types/crm/GetDataParams";
 
 export default async function getData(params: GetDataParams): Promise<{[p:string]:any}[]> {
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
         keepalive:false

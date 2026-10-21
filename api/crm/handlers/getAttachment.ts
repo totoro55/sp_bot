@@ -1,7 +1,7 @@
 import {DownloadAttachmentParams} from "../../../types/crm/DownloadAttachmentParams";
 
 export default async function getAttachment(params: DownloadAttachmentParams): Promise<{[p:string]:string}> {
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
         keepalive:false

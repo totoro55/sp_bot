@@ -1,4 +1,3 @@
-import {TUser} from "../../../types/global/TUser";
 import {CrmApiParams} from "../../../types/crm/CrmApiParams";
 import {AuthKeyItem} from "../../../types/global/AuthKeyItem";
 import {UpdateDataParams} from "../../../types/crm/UpdateDataParams";
@@ -18,7 +17,7 @@ export default async function setAuthCodeInactive(authCodeItem:AuthKeyItem, crmC
         ...crmConfig
     }
 
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
         keepalive:false

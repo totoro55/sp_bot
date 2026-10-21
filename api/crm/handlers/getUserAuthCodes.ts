@@ -1,6 +1,5 @@
 import {GetDataParams} from "../../../types/crm/GetDataParams";
 import {CrmApiParams} from "../../../types/crm/CrmApiParams";
-import {EXPIRES_IN} from "../../../config/crmConfig";
 import createAuthCodeItemFomData from "../helpers/createAuthCodeItemFomData";
 import {AuthKeyItem} from "../../../types/global/AuthKeyItem";
 
@@ -22,7 +21,7 @@ export default async function getUserAuthCode(
         }, ...crmConfig
     }
 
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
     })

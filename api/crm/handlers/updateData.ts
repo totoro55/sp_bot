@@ -1,7 +1,7 @@
 import {UpdateDataParams} from "../../../types/crm/UpdateDataParams";
 
 export default async function updateData(params: UpdateDataParams): Promise<number> {
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
         keepalive:false

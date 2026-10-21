@@ -1,7 +1,7 @@
 import {SendDataParams} from "../../../types/crm/SendDataParams";
 
 export default async function addDataToEntity(params: SendDataParams): Promise<number> {
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
         //keepalive:false

@@ -18,7 +18,7 @@ export default async function getUserByChatId(
         }, ...crmConfig
     }
 
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
     })

@@ -1,7 +1,7 @@
 import {GetGlobalListsChoicesParams} from "../../../types/crm/GetGlobalListsChoicesParams";
 
 export default async function getGlobalListChoicesData(params: GetGlobalListsChoicesParams): Promise<{[key:string]: any}[]> {
-    const res = await fetch("http://southproject.partner.ru/api/rest.php", {
+    const res = await fetch(process.env.CRM_URL || "", {
         method: "POST",
         body: JSON.stringify(params),
         keepalive:false
