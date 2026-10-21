@@ -3,6 +3,7 @@ import {MyApi} from "../../../types/global/myContext";
 import {backKeyboard} from "../../global/keyboards/back";
 import sendFeedback from "../../global/handlers/sendFeedback";
 import {downloadTelegramFile} from "./downloadTelegramFile";
+import {prepareCrmFile} from "./heicToJpeg";
 import {deleteServiceMessage, editProgress, sendKeyboard} from "./progress";
 import {patchBusySession} from "./sessionPatch";
 
@@ -22,11 +23,12 @@ const runFeedbackUpload = async (api: MyApi, job: FeedbackUploadJob): Promise<vo
     try {
         await editProgress(api, job.chatId, job.progressMessageId, message);
         const content = await downloadTelegramFile(api, job.telegramFileId);
+        const prepared = await prepareCrmFile(content, job.fileName);
         message = await sendFeedback({
             feedbackType: job.feedbackType,
             userId: job.userId,
             description: job.description,
-            attachment: {name: job.fileName, content: content.toString("base64")},
+            attachment: {name: prepared.fileName, content: prepared.content.toString("base64")},
         });
     } catch (error) {
         message = `Не удалось отправить обращение. ${readableError(error)}\n\nЗаполните его еще раз.`;

@@ -101,8 +101,9 @@ bot.on(":file", async (ctx) => {
     const mediaType = /video|image/i;
     const fileName = ctx.message.document?.file_name || ctx.message.video?.file_name;
     const mimeType = ctx.message.document?.mime_type || ctx.message.video?.mime_type;
+    const namedHeic = /\.heic$/i.test(fileName || "") || /heic|heif/i.test(mimeType || "");
 
-    if ((ctx.message.document || ctx.message.video) && !mediaType.test(mimeType || "")) {
+    if ((ctx.message.document || ctx.message.video) && !mediaType.test(mimeType || "") && !namedHeic) {
         await ctx.reply(`Файл ${fileName} не принят, так как не является изображением или видео.\n${SEND_FILE_HINT}`)
         return
     }
@@ -121,10 +122,10 @@ bot.on(":file", async (ctx) => {
         return
     }
 
-    const regex2 = /\.(heic|heiv)$/i
-    if (regex2.test(file.file_path || "")) {
+    const heiv = /\.heiv$/i.test(file.file_path || "") || /\.heiv$/i.test(fileName || "");
+    if (heiv) {
         await ctx.replyWithPhoto(new InputFile("files/instruction.png"), {
-            caption: "Вы отправили файл, формат которого не поддерживается ботом (HEIC/HEIV). Для изменения формата на iPhone необходимо открыть настройки телефона и изменить формат сохраняемых фотографий на 'Наиболее совместимый', как указано на скриншоте.",
+            caption: "Файл HEIV пока не поддерживается. Для изменения формата на iPhone откройте настройки и выберите «Наиболее совместимый», как указано на скриншоте. Фото HEIC бот преобразует в JPG сам.",
             reply_parameters: {message_id: ctx.msg.message_id}
         })
         return

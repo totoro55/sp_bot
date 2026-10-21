@@ -3,11 +3,12 @@ import {MyApi} from "../../../types/global/myContext";
 import {createFileId} from "../helpers/fileIds";
 import {addFilesKeyboard, reportActionsKeyboard} from "../keyboards/report";
 import {downloadTelegramFile} from "./downloadTelegramFile";
+import {prepareCrmFile} from "./heicToJpeg";
 import {insertReport, updateReportAttachments, updateReportMeta} from "./crmReport";
 import {deleteServiceMessage, editProgress, fileProgressText, sendKeyboard, textWithPlace} from "./progress";
 import {patchBusySession} from "./sessionPatch";
 
-type PendingFile = {telegramFileId: string; fileName: string};
+type PendingFile = {telegramFileId: string; fileName: string; heic: boolean};
 
 type ReportUploadJob = {
     chatId: number;
@@ -45,13 +46,14 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
             if (!first) throw new Error("В отчете нет файлов для отправки");
             await show(fileProgressText(job.place, 1, total, first.fileName));
             const content = await downloadTelegramFile(api, first.telegramFileId);
+            const prepared = await prepareCrmFile(content, first.fileName, first.heic);
             reportId = await insertReport(job.advStructureId, job.periodId, {
                 userId: job.userId,
                 status: job.status,
                 comment: job.comment,
                 includeStatus: true,
-            }, [{name: first.fileName, content: content.toString("base64")}]);
-            kept.push(first.fileName);
+            }, [{name: prepared.fileName, content: prepared.content.toString("base64")}]);
+            kept.push(prepared.fileName);
             uploadedIds.push(first.telegramFileId);
         } else {
             await show(textWithPlace(job.place, "Отчет принят. Сохраняю данные."));
@@ -71,11 +73,12 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
             const file = job.newFiles[index];
             await show(fileProgressText(job.place, index + 1, total, file.fileName));
             const content = await downloadTelegramFile(api, file.telegramFileId);
+            const prepared = await prepareCrmFile(content, file.fileName, file.heic);
             await updateReportAttachments(reportId!, [
                 ...namesOnly(kept),
-                {name: file.fileName, content: content.toString("base64")},
+                {name: prepared.fileName, content: prepared.content.toString("base64")},
             ]);
-            kept.push(file.fileName);
+            kept.push(prepared.fileName);
             uploadedIds.push(file.telegramFileId);
         }
 

@@ -4,6 +4,7 @@ import {reportPlace} from "../helpers/reportContext";
 import {showCurrentReportFiles} from "../helpers/showCurrentReportFiles";
 import {addFilesKeyboard} from "../keyboards/report";
 import {uniqueFileName} from "./fileName";
+import {jpegFileName} from "./heicToJpeg";
 import {hideReplyKeyboard, textWithPlace} from "./progress";
 import {enqueueUpload} from "./queue";
 
@@ -27,10 +28,14 @@ const startReportUpload = async (ctx: MyContext, user: TUser, mode: FinishMode):
 
     const keptNames = ctx.session.marketing_report_curren_files.map((file) => file.fileName);
     const usedNames = new Set(keptNames);
-    const newFiles = (report.newFiles ?? []).map((file) => ({
-        telegramFileId: file.telegramFileId,
-        fileName: uniqueFileName(file.fileName, usedNames),
-    }));
+    const newFiles = (report.newFiles ?? []).map((file) => {
+        const heic = /\.heic$/i.test(file.fileName);
+        return {
+            telegramFileId: file.telegramFileId,
+            fileName: uniqueFileName(heic ? jpegFileName(file.fileName) : file.fileName, usedNames),
+            heic,
+        };
+    });
     const uploadMode = mode === "files" ? "files" : report.reportId ? "update" : "create";
     const place = reportPlace(ctx);
     const successLead = uploadMode === "create"
