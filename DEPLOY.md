@@ -14,12 +14,9 @@ Docker Desktop должен быть в режиме Linux containers.
 docker compose version
 ```
 
-Если Docker Hub и `registry.npmjs.org` открываются только через корп. прокси: Settings → Resources → Proxies → Manual.
+В Docker Desktop прокси не включайте. Корп. прокси нужен только боту для Telegram, он задаётся в `TELEGRAM_PROXY_URL`. Образ и CRM ходят напрямую.
 
-- Web Server: `http://mow2-it-proxy-haproxy.partner.ru:3128`
-- Bypass: `localhost,127.0.0.1,.partner.ru`
-
-Нажмите Apply & Restart. Включите Start Docker Desktop when you sign in.
+Включите Start Docker Desktop when you sign in.
 
 Учётная запись Windows, под которой будет работать runner, должна входить в группу `docker-users`. После добавления в группу выйдите из Windows и зайдите снова.
 
@@ -33,7 +30,7 @@ Copy-Item .env.example C:\sp_bot\.env
 notepad C:\sp_bot\.env
 ```
 
-Заполните `BOT_TOKEN`, `CRM_URL`, `CRM_API_KEY`, `CRM_PASSWORD`, `CRM_USER`. `TELEGRAM_PROXY_URL` оставьте корп. прокси. Если пакеты при сборке образа не скачиваются, раскомментируйте `BUILD_HTTP_PROXY` и `BUILD_HTTPS_PROXY`.
+Заполните `BOT_TOKEN`, `CRM_URL`, `CRM_API_KEY`, `CRM_PASSWORD`, `CRM_USER`. `TELEGRAM_PROXY_URL` оставьте корп. прокси. Строк `BUILD_HTTP_PROXY` в этом файле быть не должно.
 
 ## 3. Runner
 

@@ -37,5 +37,6 @@ jobs:
           ENV_FILE: C:/sp_bot/.env
         run: |
           docker compose --env-file C:/sp_bot/.env up -d --build --force-recreate --remove-orphans
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           docker image prune -f
           docker ps --filter name=sp-bot
