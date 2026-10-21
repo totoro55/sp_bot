@@ -1,5 +1,5 @@
 import "dotenv/config";
-import {Bot, GrammyError, HttpError, InlineKeyboard, InputFile, session} from "grammy";
+import {Bot, GrammyError, HttpError, InlineKeyboard, session} from "grammy";
 import getUser from "./global/handlers/getUser";
 import {startKeyboard} from "./global/keyboards/start";
 import addCallbacks from "./callbacks";
@@ -101,9 +101,9 @@ bot.on(":file", async (ctx) => {
     const mediaType = /video|image/i;
     const fileName = ctx.message.document?.file_name || ctx.message.video?.file_name;
     const mimeType = ctx.message.document?.mime_type || ctx.message.video?.mime_type;
-    const namedHeic = /\.heic$/i.test(fileName || "") || /heic|heif/i.test(mimeType || "");
+    const namedHeif = /\.hei[cf]$/i.test(fileName || "") || /heic|heif/i.test(mimeType || "");
 
-    if ((ctx.message.document || ctx.message.video) && !mediaType.test(mimeType || "") && !namedHeic) {
+    if ((ctx.message.document || ctx.message.video) && !mediaType.test(mimeType || "") && !namedHeif) {
         await ctx.reply(`Файл ${fileName} не принят, так как не является изображением или видео.\n${SEND_FILE_HINT}`)
         return
     }
@@ -122,34 +122,24 @@ bot.on(":file", async (ctx) => {
         return
     }
 
-    const heiv = /\.heiv$/i.test(file.file_path || "") || /\.heiv$/i.test(fileName || "");
-    if (heiv) {
-        await ctx.replyWithPhoto(new InputFile("files/instruction.png"), {
-            caption: "Файл HEIV пока не поддерживается. Для изменения формата на iPhone откройте настройки и выберите «Наиболее совместимый», как указано на скриншоте. Фото HEIC бот преобразует в JPG сам.",
-            reply_parameters: {message_id: ctx.msg.message_id}
-        })
-        return
-    } else {
-        const fileId = createFileId()
-        const report = ctx.session.marketing_report
-        ctx.session.marketing_report = {
-            ...report,
-            newFiles: [...(report.newFiles ?? []), {
-                fileId,
-                telegramFileId: file.file_id,
-                fileName: telegramFileName(fileName, mimeType),
-            }],
-        }
-        await ctx.reply(acceptedFileText(reportFileCount(ctx)), {
-            reply_parameters: {message_id: ctx.msg.message_id},
-            reply_markup: new InlineKeyboard().text("Удалить этот файл", `delete_file_${fileId}`),
-        })
-        try {
-            await ctx.react("👍")
-        } catch (error) {
-            console.log(error)
-        }
-        return
+    const fileId = createFileId()
+    const report = ctx.session.marketing_report
+    ctx.session.marketing_report = {
+        ...report,
+        newFiles: [...(report.newFiles ?? []), {
+            fileId,
+            telegramFileId: file.file_id,
+            fileName: telegramFileName(fileName, mimeType),
+        }],
+    }
+    await ctx.reply(acceptedFileText(reportFileCount(ctx)), {
+        reply_parameters: {message_id: ctx.msg.message_id},
+        reply_markup: new InlineKeyboard().text("Удалить этот файл", `delete_file_${fileId}`),
+    })
+    try {
+        await ctx.react("👍")
+    } catch (error) {
+        console.log(error)
     }
 })
 

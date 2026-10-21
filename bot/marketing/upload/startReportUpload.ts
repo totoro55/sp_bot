@@ -29,7 +29,7 @@ const startReportUpload = async (ctx: MyContext, user: TUser, mode: FinishMode):
     const keptNames = ctx.session.marketing_report_curren_files.map((file) => file.fileName);
     const usedNames = new Set(keptNames);
     const newFiles = (report.newFiles ?? []).map((file) => {
-        const heic = /\.heic$/i.test(file.fileName);
+        const heic = /\.hei[cf]$/i.test(file.fileName);
         return {
             telegramFileId: file.telegramFileId,
             fileName: uniqueFileName(heic ? jpegFileName(file.fileName) : file.fileName, usedNames),

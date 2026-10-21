@@ -22,7 +22,7 @@ const conversionError = (error: unknown): Error => {
     if (/pixel limit|exceeds pixel/i.test(message)) {
         return new Error("Снимок слишком большой для преобразования в JPG");
     }
-    return new Error("Не удалось преобразовать HEIC в JPG");
+    return new Error("Не удалось преобразовать фото HEIF в JPG");
 };
 
 const decodeHeic = async (content: Buffer): Promise<Buffer> => {
@@ -76,7 +76,7 @@ const prepareCrmFile = async (
     fileName: string,
     force = false,
 ): Promise<{content: Buffer; fileName: string}> => {
-    if (!force && !isHeic(content) && !/\.heic$/i.test(fileName)) {
+    if (!force && !isHeic(content) && !/\.hei[cf]$/i.test(fileName)) {
         return {content, fileName};
     }
     const jpeg = await heicToJpeg(content);
