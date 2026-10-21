@@ -156,12 +156,14 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
     bot.hears("Добавить фото/видео к отчету", async (ctx) => {
         const user = await getUser(ctx);
         if (!user) return;
-        if (!ctx.session.marketing_report?.reportId) {
+        const report = ctx.session.marketing_report;
+        if (!report?.reportId) {
             await ctx.reply("Сначала выберите конструкцию, по которой уже есть отчет.", {
                 reply_markup: changeStructureOrPeriodKeyboard,
             });
             return;
         }
+        ctx.session.marketing_report = {...report, acceptFiles: true};
 
         const place = reportPlace(ctx);
         if (place) await ctx.reply(place);

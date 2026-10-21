@@ -52,6 +52,7 @@ export default async function report(conversation: MyConversation, ctx: MyContex
     await conversation.external((outside) => {
         outside.session.marketing_report = {
             ...reportDraft,
+            acceptFiles: true,
             reportData: {status, comment, photos: []},
         };
     });

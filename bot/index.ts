@@ -27,7 +27,7 @@ import {reportFileCount} from "./marketing/helpers/reportPhotoUrls";
 import {createFileId} from "./marketing/helpers/fileIds";
 import {telegramFileName} from "./marketing/upload/fileName";
 import {bindUploadApi} from "./marketing/upload/queue";
-import {addFilesKeyboard, filialActionsKeyboard} from "./marketing/keyboards/report";
+import {addFilesKeyboard, filialActionsKeyboard, structureReportKeyboard} from "./marketing/keyboards/report";
 import {chatLock} from "./runtime/chatLock";
 import {sessionStorage} from "./runtime/sessionStorage";
 import {uploadGuard} from "./uploadGuard";
@@ -87,9 +87,18 @@ addCallbacks(bot)
 addHears(bot)
 
 bot.on(":file", async (ctx) => {
-    if (!ctx.session.marketing_report) {
+    const draft = ctx.session.marketing_report
+    if (!draft) {
         await ctx.reply("Сейчас отчет не заполняется. Выберите конструкцию и начните отчет, затем отправьте фото как файл.", {
             reply_markup: ctx.session.selected_filial ? filialActionsKeyboard : startKeyboard,
+        })
+        return
+    }
+    if (!draft.acceptFiles) {
+        await ctx.reply(draft.reportId
+            ? "Сначала отредактируйте отчет или нажмите «Добавить фото/видео к отчету». Фото и видео можно отправить после этого."
+            : "Сначала заполните отчет. Фото и видео можно отправить после этого шага.", {
+            reply_markup: structureReportKeyboard(Boolean(draft.reportId)),
         })
         return
     }
@@ -129,10 +138,9 @@ bot.on(":file", async (ctx) => {
     }
 
     const fileId = createFileId()
-    const report = ctx.session.marketing_report
     ctx.session.marketing_report = {
-        ...report,
-        newFiles: [...(report.newFiles ?? []), {
+        ...draft,
+        newFiles: [...(draft.newFiles ?? []), {
             fileId,
             telegramFileId: file.file_id,
             fileName: telegramFileName(fileName, mimeType),
