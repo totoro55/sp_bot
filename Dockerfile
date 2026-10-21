@@ -1,12 +1,5 @@
 FROM node:22-bookworm-slim
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libjemalloc2 \
-    && rm -rf /var/lib/apt/lists/* \
-    && jemalloc="$(find /usr/lib -name 'libjemalloc.so.2' | head -n 1)" \
-    && test -n "$jemalloc" \
-    && ln -sf "$jemalloc" /usr/local/lib/libjemalloc.so.2
-
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -14,6 +7,13 @@ RUN npm config set fetch-retries 5 \
     && npm config set fetch-retry-mintimeout 20000 \
     && npm config set fetch-retry-maxtimeout 120000 \
     && npm ci
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libjemalloc2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && jemalloc="$(find /usr/lib -name 'libjemalloc.so.2' | head -n 1)" \
+    && test -n "$jemalloc" \
+    && ln -sf "$jemalloc" /usr/local/lib/libjemalloc.so.2
 
 COPY tsconfig.json index.ts ./
 COPY api ./api
