@@ -2,13 +2,14 @@ import {readableError} from "../../global/helpers/readableError";
 import {MyApi} from "../../../types/global/myContext";
 import {createFileId} from "../helpers/fileIds";
 import {addFilesKeyboard, reportActionsKeyboard} from "../keyboards/report";
+import {maxUploadBytes} from "../../../config/filesConfig";
 import {downloadTelegramFile} from "./downloadTelegramFile";
 import {prepareCrmFile} from "./heicToJpeg";
 import {insertReport, updateReportAttachments, updateReportMeta} from "./crmReport";
 import {deleteServiceMessage, editProgress, fileProgressText, sendKeyboard, textWithPlace} from "./progress";
 import {patchBusySession} from "./sessionPatch";
 
-type PendingFile = {telegramFileId: string; fileName: string; heic: boolean};
+type PendingFile = {telegramFileId: string; fileName: string; heic: boolean; video: boolean};
 
 type ReportUploadJob = {
     chatId: number;
@@ -45,7 +46,7 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
             const first = job.newFiles[0];
             if (!first) throw new Error("В отчете нет файлов для отправки");
             await show(fileProgressText(job.place, 1, total, first.fileName));
-            const content = await downloadTelegramFile(api, first.telegramFileId);
+            const content = await downloadTelegramFile(api, first.telegramFileId, maxUploadBytes(first.video));
             const prepared = await prepareCrmFile(content, first.fileName, first.heic);
             reportId = await insertReport(job.advStructureId, job.periodId, {
                 userId: job.userId,
@@ -72,7 +73,7 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
         for (let index = start; index < job.newFiles.length; index += 1) {
             const file = job.newFiles[index];
             await show(fileProgressText(job.place, index + 1, total, file.fileName));
-            const content = await downloadTelegramFile(api, file.telegramFileId);
+            const content = await downloadTelegramFile(api, file.telegramFileId, maxUploadBytes(file.video));
             const prepared = await prepareCrmFile(content, file.fileName, file.heic);
             await updateReportAttachments(reportId!, [
                 ...namesOnly(kept),

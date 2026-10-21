@@ -29,11 +29,19 @@ const deleteFile = async (ctx: MyContext) => {
         return;
     }
 
+    const sourceMessageId = newFile?.sourceMessageId;
     try {
         await ctx.deleteMessage();
     } catch (error) {
         console.log(error);
         await ctx.reply("Файл убран из отчета.");
+    }
+    if (ctx.chat?.id && sourceMessageId) {
+        try {
+            await ctx.api.deleteMessage(ctx.chat.id, sourceMessageId);
+        } catch (error) {
+            console.log(error);
+        }
     }
 };
 

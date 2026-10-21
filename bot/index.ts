@@ -15,7 +15,8 @@ import {HttpsProxyAgent} from "https-proxy-agent";
 import {assertRuntimeEnv, telegramProxyUrl} from "../config/env";
 import {
     ADD_REPORT_FILES_PROMPT,
-    MAX_REPORT_FILE_BYTES,
+    isVideoUpload,
+    maxUploadBytes,
     MIN_REPORT_FILE_BYTES,
     SEND_FILE_HINT,
 } from "../config/filesConfig";
@@ -109,14 +110,20 @@ bot.on(":file", async (ctx) => {
     }
 
     const file = await ctx.getFile()
+    const video = isVideoUpload(fileName, mimeType, Boolean(ctx.message.video));
+    const maxBytes = maxUploadBytes(video);
     if (file.file_size && file.file_size < MIN_REPORT_FILE_BYTES) {
         await ctx.reply(`Размер файла не должен быть меньше 1 МБ.\n\n${SEND_FILE_HINT}`, {
             reply_parameters: {message_id: ctx.msg.message_id}
         })
         return
     }
-    if (file.file_size && file.file_size > MAX_REPORT_FILE_BYTES) {
-        await ctx.reply(`Размер файла не должен превышать 20 МБ. Если вы отправляете видео - можете отправить его со сжатием или отредактировать перед отправкой.\n\n${SEND_FILE_HINT}`, {
+    if (file.file_size && file.file_size > maxBytes) {
+        const limit = video ? "50 МБ" : "20 МБ";
+        const hint = video
+            ? "Можно отправить видео со сжатием или отредактировать его перед отправкой."
+            : "Отправьте фото как файл, без сжатия.";
+        await ctx.reply(`Размер ${video ? "видео" : "фото"} не должен превышать ${limit}. ${hint}\n\n${SEND_FILE_HINT}`, {
             reply_parameters: {message_id: ctx.msg.message_id}
         })
         return
@@ -130,6 +137,8 @@ bot.on(":file", async (ctx) => {
             fileId,
             telegramFileId: file.file_id,
             fileName: telegramFileName(fileName, mimeType),
+            sourceMessageId: ctx.message.message_id,
+            video,
         }],
     }
     await ctx.reply(acceptedFileText(reportFileCount(ctx)), {

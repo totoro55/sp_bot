@@ -6,7 +6,7 @@ import {TUser} from "../../../types/global/TUser";
 import {readableError} from "../helpers/readableError";
 import {telegramFileName} from "../../marketing/upload/fileName";
 import {startFeedbackUpload} from "../../marketing/upload/startFeedbackUpload";
-import {MAX_REPORT_FILE_BYTES} from "../../../config/filesConfig";
+import {isVideoUpload, maxUploadBytes} from "../../../config/filesConfig";
 
 export default async function feedback(conversation: MyConversation, ctx: MyContext, user: TUser ) {
     const userId = user.id
@@ -99,8 +99,13 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
         })
         return
     }
-    if (fileSize && fileSize > MAX_REPORT_FILE_BYTES) {
-        await ctx3.reply("Вложение больше 20 МБ. Заполните обращение еще раз и отправьте файл меньшего размера или без вложения.", {
+    const feedbackName = document?.file_name || video?.file_name;
+    const feedbackMime = document?.mime_type || video?.mime_type;
+    const feedbackVideo = isVideoUpload(feedbackName, feedbackMime, Boolean(video));
+    const feedbackLimit = maxUploadBytes(feedbackVideo);
+    if (fileSize && fileSize > feedbackLimit) {
+        const limit = feedbackVideo ? "50 МБ" : "20 МБ";
+        await ctx3.reply(`Вложение больше ${limit}. Заполните обращение еще раз и отправьте файл меньшего размера или без вложения.`, {
             reply_markup: backKeyboard,
         })
         return

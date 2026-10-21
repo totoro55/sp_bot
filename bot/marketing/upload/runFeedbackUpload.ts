@@ -2,6 +2,7 @@ import {readableError} from "../../global/helpers/readableError";
 import {MyApi} from "../../../types/global/myContext";
 import {backKeyboard} from "../../global/keyboards/back";
 import sendFeedback from "../../global/handlers/sendFeedback";
+import {isVideoUpload, maxUploadBytes} from "../../../config/filesConfig";
 import {downloadTelegramFile} from "./downloadTelegramFile";
 import {prepareCrmFile} from "./heicToJpeg";
 import {deleteServiceMessage, editProgress, sendKeyboard} from "./progress";
@@ -22,7 +23,7 @@ const runFeedbackUpload = async (api: MyApi, job: FeedbackUploadJob): Promise<vo
     let message = "Обращение принято. Отправляю вложение.";
     try {
         await editProgress(api, job.chatId, job.progressMessageId, message);
-        const content = await downloadTelegramFile(api, job.telegramFileId);
+        const content = await downloadTelegramFile(api, job.telegramFileId, maxUploadBytes(isVideoUpload(job.fileName)));
         const prepared = await prepareCrmFile(content, job.fileName);
         message = await sendFeedback({
             feedbackType: job.feedbackType,

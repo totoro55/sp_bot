@@ -34,6 +34,7 @@ const startReportUpload = async (ctx: MyContext, user: TUser, mode: FinishMode):
             telegramFileId: file.telegramFileId,
             fileName: uniqueFileName(heic ? jpegFileName(file.fileName) : file.fileName, usedNames),
             heic,
+            video: Boolean(file.video),
         };
     });
     const uploadMode = mode === "files" ? "files" : report.reportId ? "update" : "create";
