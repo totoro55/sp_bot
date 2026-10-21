@@ -1,21 +1,18 @@
 import {Bot, InlineKeyboard, InputFile} from "grammy";
 import {readableError} from "./global/helpers/readableError";
 import {MyApi, MyContext} from "../types/global/myContext";
-import {MarketingReport} from "../types/marketing/MarketingReport";
 import getUser from "./global/handlers/getUser";
 import {startKeyboard} from "./global/keyboards/start";
 import {findFilialByCode} from "./global/middlewares";
 import {findFilialKeyboard} from "./global/keyboards/findFilial";
 import getAdvertisingStructuresByFilial from "./marketing/handlers/getAdvertisingStructuresByFilial";
-import updateReport from "./marketing/handlers/updateReport";
-import addReport from "./marketing/handlers/addReport";
-import addFilesToReport from "./marketing/handlers/addFilesToReport";
 import {ADD_REPORT_FILES_PROMPT, NEED_REPORT_FILE_PROMPT} from "../config/filesConfig";
 import {showCurrentReportFiles} from "./marketing/helpers/showCurrentReportFiles";
-import {reportPhotoUrls} from "./marketing/helpers/reportPhotoUrls";
+import {reportFileCount} from "./marketing/helpers/reportPhotoUrls";
 import {askReportPeriod, requireFilial} from "./marketing/helpers/askReportPeriod";
 import {clearMarketingReport, resetMarketingSession} from "./marketing/helpers/reportSession";
-import {reportPlace, savedReportText} from "./marketing/helpers/reportContext";
+import {reportPlace} from "./marketing/helpers/reportContext";
+import {startReportUpload} from "./marketing/upload/startReportUpload";
 import {replyInlineChoice} from "./marketing/helpers/replyInlineChoice";
 import {structureListButtons} from "./marketing/helpers/structureLabel";
 import {
@@ -27,34 +24,12 @@ import {
     continueReportKeyboard,
     filialActionsKeyboard,
     marketingMenuKeyboard,
-    reportActionsKeyboard,
 } from "./marketing/keyboards/report";
 
 const NO_PERIODS_FOR_FILL = "На текущий момент не происходит сбор отчетов. Если уверены, что вам необходимо отправить отчет о состоянии РК - обратитесь к ответственным сотрудникам Отдела Рекламы.";
 const NO_PERIODS_FOR_CHANGE = "В настоящее время сбор отчётов не производится. В случае необходимости отправки отчёта о состоянии РК просим обратиться к ответственным сотрудникам отдела рекламы.";
 
-const reportWithPhotos = (ctx: MyContext): MarketingReport | null => {
-    const report = ctx.session.marketing_report;
-    if (!report) return null;
-    return {
-        ...report,
-        reportData: {
-            ...report.reportData,
-            photos: reportPhotoUrls(ctx),
-        },
-    };
-};
-
-const replyReportSaved = async (ctx: MyContext, lead: string) => {
-    const message = savedReportText(ctx, lead);
-    clearMarketingReport(ctx);
-    await ctx.reply(message, {reply_markup: reportActionsKeyboard});
-};
-
-const replyReportFailed = async (ctx: MyContext, message: string) => {
-    clearMarketingReport(ctx);
-    await ctx.reply(message, {reply_markup: backToMenuKeyboard});
-};
+const hasReportFiles = (ctx: MyContext): boolean => reportFileCount(ctx) > 0;
 
 const addHears = (bot: Bot<MyContext, MyApi>) => {
     bot.hears("Обратная связь", async (ctx) => {
@@ -159,7 +134,7 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         const user = await getUser(ctx);
         if (!user) return;
 
-        const report = reportWithPhotos(ctx);
+        const report = ctx.session.marketing_report;
         const period = ctx.session.marketing_report_period;
         if (!report || !period) {
             await ctx.reply("Не выбран отчет или период. Начните заполнение заново.", {
@@ -168,26 +143,14 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
             return;
         }
 
-        if (report.reportData.photos.length === 0) {
+        if (!hasReportFiles(ctx)) {
             await ctx.reply(NEED_REPORT_FILE_PROMPT, {
                 reply_markup: addFilesKeyboard("Завершить добавление файлов"),
             });
             return;
         }
 
-        const res = report.reportId
-            ? await updateReport(report, period.id, user)
-            : await addReport(report, period.id, user);
-
-        if (res.status == "success") {
-            await replyReportSaved(ctx, report.reportId ? "Отчет успешно обновлен." : "Отчет успешно добавлен.");
-            return;
-        }
-
-        const message = report.reportId
-            ? res.message
-            : `Произошла ошибка: ${res.message}. Обратитесь к ответственным.`;
-        await replyReportFailed(ctx, message);
+        await startReportUpload(ctx, user, "form");
     });
 
     bot.hears("Добавить фото/видео к отчету", async (ctx) => {
@@ -212,27 +175,21 @@ const addHears = (bot: Bot<MyContext, MyApi>) => {
         const user = await getUser(ctx);
         if (!user) return;
 
-        const report = reportWithPhotos(ctx);
-        if (!report?.reportId) {
+        if (!ctx.session.marketing_report?.reportId) {
             await ctx.reply("Не выбран отчет, к которому нужно добавить файлы. Выберите конструкцию заново.", {
                 reply_markup: filialActionsKeyboard,
             });
             return;
         }
 
-        if (report.reportData.photos.length === 0) {
+        if (!hasReportFiles(ctx)) {
             await ctx.reply(NEED_REPORT_FILE_PROMPT, {
                 reply_markup: addFilesKeyboard("Завершить добавление файлов к отчету"),
             });
             return;
         }
 
-        const res = await addFilesToReport({reportId: report.reportId, photos: report.reportData.photos}, user);
-        if (res.status == "success") {
-            await replyReportSaved(ctx, "Файлы успешно добавлены к отчету.");
-            return;
-        }
-        await replyReportFailed(ctx, res.message);
+        await startReportUpload(ctx, user, "files");
     });
 
     bot.hears("Отменить создание отчета", async (ctx) => {

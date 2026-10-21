@@ -4,6 +4,7 @@ const clearMarketingReport = (ctx: MyContext): void => {
     ctx.session.marketing_report = null;
     ctx.session.marketing_report_files = [];
     ctx.session.marketing_report_curren_files = [];
+    ctx.session.reportFilesSynced = false;
 };
 
 const resetMarketingSession = (ctx: MyContext): void => {

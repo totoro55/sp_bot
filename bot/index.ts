@@ -22,9 +22,14 @@ import {
 import {showCurrentReportFiles} from "./marketing/helpers/showCurrentReportFiles";
 import {resetMarketingSession} from "./marketing/helpers/reportSession";
 import {acceptedFileText, reportPlace} from "./marketing/helpers/reportContext";
-import {reportPhotoUrls} from "./marketing/helpers/reportPhotoUrls";
+import {reportFileCount} from "./marketing/helpers/reportPhotoUrls";
 import {createFileId} from "./marketing/helpers/fileIds";
+import {telegramFileName} from "./marketing/upload/fileName";
+import {bindUploadApi} from "./marketing/upload/queue";
 import {addFilesKeyboard, filialActionsKeyboard} from "./marketing/keyboards/report";
+import {chatLock} from "./runtime/chatLock";
+import {sessionStorage} from "./runtime/sessionStorage";
+import {uploadGuard} from "./uploadGuard";
 
 assertRuntimeEnv();
 
@@ -48,13 +53,18 @@ function initial(): SessionData {
         marketing_report_period: null,
         marketing_report_files: [],
         marketing_report: null,
-        marketing_report_curren_files: []
+        marketing_report_curren_files: [],
+        reportFilesSynced: false,
+        outboundBusy: null,
     };
 }
 
-bot.use(session({initial}));
+bot.use(chatLock());
+bot.use(session({initial, storage: sessionStorage}));
+bot.use(uploadGuard());
 
 bot.api.config.use(hydrateFiles(process.env.BOT_TOKEN!));
+bindUploadApi(bot.api);
 bot.use(hydrate())
 bot.use(conversations({
     async onExit(id, ctx) {
@@ -119,18 +129,17 @@ bot.on(":file", async (ctx) => {
         })
         return
     } else {
-        const fileUrl = file.getUrl()
         const fileId = createFileId()
         const report = ctx.session.marketing_report
         ctx.session.marketing_report = {
             ...report,
-            newFiles: [...(report.newFiles ?? []), {fileId, fileUrl}],
-            reportData: {
-                ...report.reportData,
-                photos: [...report.reportData.photos, fileUrl],
-            },
+            newFiles: [...(report.newFiles ?? []), {
+                fileId,
+                telegramFileId: file.file_id,
+                fileName: telegramFileName(fileName, mimeType),
+            }],
         }
-        await ctx.reply(acceptedFileText(reportPhotoUrls(ctx).length), {
+        await ctx.reply(acceptedFileText(reportFileCount(ctx)), {
             reply_parameters: {message_id: ctx.msg.message_id},
             reply_markup: new InlineKeyboard().text("Удалить этот файл", `delete_file_${fileId}`),
         })

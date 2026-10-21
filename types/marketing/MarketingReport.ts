@@ -3,7 +3,7 @@ export type MarketingReport = {
     advStructureType: string,
     advStructureTitle?: string,
     reportId: string | null,
-    newFiles?: {fileId: string, fileUrl: string}[],
+    newFiles?: {fileId: string, telegramFileId: string, fileName: string}[],
     reportData: {
         status: string,
         comment: string,

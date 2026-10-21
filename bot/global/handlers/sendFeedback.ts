@@ -1,36 +1,29 @@
 import {createCrm} from "../../../api/crm";
 
-const sendFeedback = async (
-    feedbackType: "problem" | "offer",
-    user_id: string,
-    description: string,
-    file_url?:string | string[]
-    ) => {
+type FeedbackAttachment = {name: string; content: string};
 
-    const crm = createCrm()
+const feedbackLink = (id: number | string): string => {
+    return "Обращение успешно зарегистрировано. Благодарим за предоставленную информацию.\n" +
+        `Ссылка на обращение:\nhttp://southproject.partner.ru/index.php?module=items/info&path=219-${id}`;
+};
 
-    const payload = {
-        entity_id:219,
+const sendFeedback = async (params: {
+    feedbackType: "problem" | "offer";
+    userId: string;
+    description: string;
+    attachment?: FeedbackAttachment;
+}): Promise<string> => {
+    const crm = createCrm();
+    const id = await crm.insertData({
+        entity_id: 219,
         items: {
-            field_3808: feedbackType === "problem" ? 1679 : 1680,
-            created_by: user_id,
-            field_3809: description,
-            field_3810: file_url ?? "",
-        }
-    }
-    try {
-        const id = await crm.insertData(payload)
-        return "Обращение успешно зарегистрировано. Благодарим за предоставленную информацию.\n" +
-            `Ссылка на обращение:\n http://southproject.partner.ru/index.php?module=items/info&path=219-${id}`
-    } catch (error) {
-        if (error instanceof Error) {
-            return error.message
-        } else {
-            return "Произошла неизвестная ошибка"
-        }
+            field_3808: params.feedbackType === "problem" ? 1679 : 1680,
+            created_by: params.userId,
+            field_3809: params.description,
+            field_3810: params.attachment ? [params.attachment] : "",
+        },
+    });
+    return feedbackLink(id);
+};
 
-    }
-
-}
-
-export default sendFeedback
+export default sendFeedback;

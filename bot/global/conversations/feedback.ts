@@ -3,6 +3,10 @@ import {Keyboard} from "grammy";
 import {backKeyboard} from "../keyboards/back";
 import {sendFeedback} from "../handlers";
 import {TUser} from "../../../types/global/TUser";
+import {readableError} from "../helpers/readableError";
+import {telegramFileName} from "../../marketing/upload/fileName";
+import {startFeedbackUpload} from "../../marketing/upload/startFeedbackUpload";
+import {MAX_REPORT_FILE_BYTES} from "../../../config/filesConfig";
 
 export default async function feedback(conversation: MyConversation, ctx: MyContext, user: TUser ) {
     const userId = user.id
@@ -63,13 +67,16 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
                 }
 
                 if (c.message?.text == "Продолжить без вложения") {
-                    const res = await sendFeedback(
-                        type === "Проблема" ? "problem" : "offer",
-                        userId,
-                        description
-                    )
-
-                    await c.reply(res, {reply_markup: backKeyboard})
+                    try {
+                        const res = await sendFeedback({
+                            feedbackType: type === "Проблема" ? "problem" : "offer",
+                            userId,
+                            description,
+                        })
+                        await c.reply(res, {reply_markup: backKeyboard})
+                    } catch (error) {
+                        await c.reply(`Не удалось отправить обращение. ${readableError(error)}`, {reply_markup: backKeyboard})
+                    }
                     await conversation.halt()
                 }
 
@@ -81,15 +88,32 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
             }
         })
 
-    const file = await ctx3.getFile()
-    const fileUrl = file.getUrl()
-    const res = await sendFeedback(
-        type === "Проблема" ? "problem" : "offer",
-        userId,
-        description,
-        fileUrl
-    )
+    const document = ctx3.message?.document
+    const video = ctx3.message?.video
+    const photos = ctx3.message?.photo
+    const telegramFileId = document?.file_id || video?.file_id || photos?.[photos.length - 1]?.file_id
+    const fileSize = document?.file_size || video?.file_size || photos?.[photos.length - 1]?.file_size
+    if (!telegramFileId) {
+        await ctx3.reply("Не удалось прочитать вложение. Заполните обращение еще раз.", {
+            reply_markup: backKeyboard,
+        })
+        return
+    }
+    if (fileSize && fileSize > MAX_REPORT_FILE_BYTES) {
+        await ctx3.reply("Вложение больше 20 МБ. Заполните обращение еще раз и отправьте файл меньшего размера или без вложения.", {
+            reply_markup: backKeyboard,
+        })
+        return
+    }
 
-    await ctx3.reply(res, {reply_markup: backKeyboard})
-    return
+    const fileName = telegramFileName(document?.file_name || video?.file_name, document?.mime_type || video?.mime_type)
+    await conversation.external(async (outside) => {
+        await startFeedbackUpload(outside, {
+            userId,
+            feedbackType: type === "Проблема" ? "problem" : "offer",
+            description,
+            fileName,
+            telegramFileId,
+        })
+    })
 }

@@ -9,35 +9,44 @@ const showCurrentReportFiles = async (ctx: MyContext): Promise<void> => {
     const reportId = ctx.session.marketing_report?.reportId;
     if (!reportId) return;
 
+    ctx.session.reportFilesSynced = false;
     try {
         await ctx.reply("Пожалуйста подождите, загружается список ранее добавленных файлов");
         const archive = await getReportCurrentPhotosByReportId(Number(reportId));
         const files = await getFilesFromZip(archive);
 
-        if (!files || files.length === 0) {
+        if (!files) {
             ctx.session.marketing_report_curren_files = [];
-            await ctx.reply("Не удалось загрузить файлы или файлы к указанному отчету отсутствуют.");
+            await ctx.reply("Не удалось загрузить файлы, которые уже есть в отчете.");
             return;
         }
 
-        ctx.session.marketing_report_curren_files = [];
+        if (files.length === 0) {
+            ctx.session.marketing_report_curren_files = [];
+            ctx.session.reportFilesSynced = true;
+            await ctx.reply("Файлы к указанному отчету отсутствуют.");
+            return;
+        }
+
+        const loaded: {fileId: string; fileName: string}[] = [];
         for (const file of files) {
             const fileId = createFileId();
             const msg = await ctx.replyWithDocument(new InputFile(file.content, file.filename), {
                 caption: file.filename,
                 reply_markup: new InlineKeyboard().text("Удалить файл", `delete_file_${fileId}`),
             });
-            if (!msg.document) continue;
-
-            const stored = await ctx.api.getFile(msg.document.file_id);
-            ctx.session.marketing_report_curren_files = [
-                ...ctx.session.marketing_report_curren_files,
-                {fileId, fileUrl: stored.getUrl()},
-            ];
+            if (!msg.document) {
+                await ctx.reply("Не удалось показать все файлы отчета. Отправка будет остановлена, чтобы не удалить их.");
+                return;
+            }
+            loaded.push({fileId, fileName: file.filename || "file"});
         }
 
+        ctx.session.marketing_report_curren_files = loaded;
+        ctx.session.reportFilesSynced = true;
         await ctx.reply("Загружены файлы. Вы можете удалить файл нажав на соответствующую кнопку расположенную под ним.");
     } catch (error) {
+        ctx.session.reportFilesSynced = false;
         await ctx.reply(`Не удалось загрузить список имеющихся файлов. ${readableError(error)}`);
     }
 };

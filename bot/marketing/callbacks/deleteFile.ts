@@ -18,13 +18,9 @@ const deleteFile = async (ctx: MyContext) => {
     const report = ctx.session.marketing_report;
     const newFile = report?.newFiles?.find((file) => file.fileId === id);
     if (report && newFile) {
-        const photos = [...report.reportData.photos];
-        const photoIndex = photos.findIndex((photo) => photo === newFile.fileUrl);
-        if (photoIndex >= 0) photos.splice(photoIndex, 1);
         ctx.session.marketing_report = {
             ...report,
             newFiles: report.newFiles?.filter((file) => file.fileId !== id),
-            reportData: {...report.reportData, photos},
         };
     }
 

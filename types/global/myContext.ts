@@ -11,10 +11,12 @@ export interface SessionData {
     user: TUser | null;
     auth_expires_in: number;
     selected_filial: TFilial | null
-    marketing_report_curren_files: [] | {fileId: string, fileUrl: string}[];
+    marketing_report_curren_files: [] | {fileId: string, fileName: string}[];
     marketing_report_period: ReportPeriod | null
     marketing_report_files: [] | string[];
     marketing_report: null | MarketingReport
+    reportFilesSynced: boolean
+    outboundBusy: null | "report" | "feedback"
 }
 
 export type MyContext = FileFlavor<ConversationFlavor<HydrateFlavor<Context>>> & SessionFlavor<SessionData>;
