@@ -104,8 +104,7 @@ export default async function feedback(conversation: MyConversation, ctx: MyCont
     const feedbackVideo = isVideoUpload(feedbackName, feedbackMime, Boolean(video));
     const feedbackLimit = maxUploadBytes(feedbackVideo);
     if (fileSize && fileSize > feedbackLimit) {
-        const limit = feedbackVideo ? "50 МБ" : "20 МБ";
-        await ctx3.reply(`Вложение больше ${limit}. Заполните обращение еще раз и отправьте файл меньшего размера или без вложения.`, {
+        await ctx3.reply("Вложение больше 20 МБ. Заполните обращение еще раз и отправьте файл меньшего размера или без вложения.", {
             reply_markup: backKeyboard,
         })
         return

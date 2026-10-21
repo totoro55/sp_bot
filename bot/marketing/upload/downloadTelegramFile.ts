@@ -1,12 +1,11 @@
 import https from "https";
 import {HttpsProxyAgent} from "https-proxy-agent";
 import {telegramProxyUrl} from "../../../config/env";
-import {MAX_VIDEO_FILE_BYTES} from "../../../config/filesConfig";
 import {MyApi} from "../../../types/global/myContext";
 
 const DOWNLOAD_TIMEOUT_MS = 180_000;
 
-const limitText = (maxBytes: number): string => maxBytes >= MAX_VIDEO_FILE_BYTES ? "50 МБ" : "20 МБ";
+const limitText = (): string => "20 МБ";
 
 const downloadTelegramFile = async (api: MyApi, telegramFileId: string, maxBytes: number): Promise<Buffer> => {
     let remote;
@@ -20,7 +19,7 @@ const downloadTelegramFile = async (api: MyApi, telegramFileId: string, maxBytes
         throw error;
     }
     if (remote.file_size && remote.file_size > maxBytes) {
-        throw new Error(`Файл больше ${limitText(maxBytes)}`);
+        throw new Error(`Файл больше ${limitText()}`);
     }
     const url = remote.getUrl();
     const proxy = telegramProxyUrl();
@@ -51,7 +50,7 @@ const downloadTelegramFile = async (api: MyApi, telegramFileId: string, maxBytes
                 size += chunk.length;
                 if (size > maxBytes) {
                     request.destroy();
-                    fail(new Error(`Файл больше ${limitText(maxBytes)}`));
+                    fail(new Error(`Файл больше ${limitText()}`));
                     return;
                 }
                 chunks.push(chunk);

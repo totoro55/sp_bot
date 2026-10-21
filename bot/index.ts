@@ -119,11 +119,10 @@ bot.on(":file", async (ctx) => {
         return
     }
     if (file.file_size && file.file_size > maxBytes) {
-        const limit = video ? "50 МБ" : "20 МБ";
         const hint = video
             ? "Можно отправить видео со сжатием или отредактировать его перед отправкой."
             : "Отправьте фото как файл, без сжатия.";
-        await ctx.reply(`Размер ${video ? "видео" : "фото"} не должен превышать ${limit}. ${hint}\n\n${SEND_FILE_HINT}`, {
+        await ctx.reply(`Размер ${video ? "видео" : "фото"} не должен превышать 20 МБ. ${hint}\n\n${SEND_FILE_HINT}`, {
             reply_parameters: {message_id: ctx.msg.message_id}
         })
         return
