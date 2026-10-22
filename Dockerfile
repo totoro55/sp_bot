@@ -10,6 +10,9 @@ RUN npm config set fetch-retries 5 \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libjemalloc2 \
+    && echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends -t bookworm-backports libheif-examples libheif-plugin-libde265 \
     && rm -rf /var/lib/apt/lists/* \
     && jemalloc="$(find /usr/lib -name 'libjemalloc.so.2' | head -n 1)" \
     && test -n "$jemalloc" \

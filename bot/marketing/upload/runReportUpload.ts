@@ -49,17 +49,25 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
         kept.splice(0, kept.length, ...stored);
     };
 
-    const loadPrepared = async (file: PendingFile, index: number) => {
-        await show(fileProgressText(job.place, index, total, file.fileName));
-        const content = await downloadTelegramFile(api, file.telegramFileId, maxUploadBytes(file.video));
-        return prepareCrmFile(content, file.fileName, file.heic);
+    const load = (file: PendingFile): Promise<{content: Buffer; fileName: string}> => {
+        const task = (async () => {
+            const content = await downloadTelegramFile(api, file.telegramFileId, maxUploadBytes(file.video));
+            return prepareCrmFile(content, file.fileName, file.heic);
+        })();
+        task.catch(() => undefined);
+        return task;
     };
 
     try {
+        const files = job.newFiles;
+        let pending = files[0] ? load(files[0]) : null;
+
         if (!reportId) {
-            const first = job.newFiles[0];
-            if (!first) throw new Error("В отчете нет файлов для отправки");
-            const prepared = await loadPrepared(first, 1);
+            const first = files[0];
+            if (!first || !pending) throw new Error("В отчете нет файлов для отправки");
+            await show(fileProgressText(job.place, 1, total, first.fileName));
+            const prepared = await pending;
+            pending = files[1] ? load(files[1]) : null;
             reportId = await insertReport(job.advStructureId, job.periodId, {
                 userId: job.userId,
                 status: job.status,
@@ -82,9 +90,13 @@ const runReportUpload = async (api: MyApi, job: ReportUploadJob): Promise<void> 
         }
 
         const start = job.reportId ? 0 : 1;
-        for (let index = start; index < job.newFiles.length; index += 1) {
-            const file = job.newFiles[index];
-            const prepared = await loadPrepared(file, index + 1);
+        for (let index = start; index < files.length; index += 1) {
+            const file = files[index];
+            if (!pending) pending = load(file);
+            await show(fileProgressText(job.place, index + 1, total, file.fileName));
+            const prepared = await pending;
+            const next = files[index + 1];
+            pending = next ? load(next) : null;
             const previousCount = kept.length;
             await updateReportAttachments(reportId!, [
                 ...namesOnly(kept),
